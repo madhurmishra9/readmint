@@ -1,0 +1,65 @@
+# Harness CI/CD pipeline for Readmint.
+pipeline:
+  name: readmint
+  identifier: readmint
+  stages:
+    - stage:
+        name: Test
+        identifier: test
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: Backend unit tests
+                  identifier: pytest
+                  type: Run
+                  spec:
+                    image: python:3.12-slim
+                    shell: Sh
+                    command: |
+                      cd backend
+                      pip install -r requirements.txt
+                      RF_LLM_STUB=true pytest -q
+              - step:
+                  name: Frontend build
+                  identifier: fe_build
+                  type: Run
+                  spec:
+                    image: node:20
+                    command: |
+                      cd frontend && npm ci && npm run build
+    - stage:
+        name: Build & Push
+        identifier: build
+        type: CI
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: Build image
+                  identifier: kaniko
+                  type: BuildAndPushDockerRegistry
+                  spec:
+                    connectorRef: corp_registry
+                    repo: registry.example.corp/readmint
+                    tags: ["<+pipeline.sequenceId>", "latest"]
+                    dockerfile: Dockerfile
+    - stage:
+        name: Deploy
+        identifier: deploy
+        type: Deployment
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: Apply manifests
+                  identifier: k8s_apply
+                  type: K8sApply
+                  spec:
+                    filePaths:
+                      - deploy/configmap.yaml
+                      - deploy/deployment.yaml
+                      - deploy/service.yaml
+                      - deploy/ingress.yaml
+                      - deploy/hpa.yaml

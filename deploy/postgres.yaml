@@ -1,0 +1,44 @@
+# Optional history/audit store. Gated by RF_DATABASE_URL — omit to stay stateless.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: readmint-pg
+  labels: { app: readmint-pg }
+spec:
+  serviceName: readmint-pg
+  replicas: 1
+  selector:
+    matchLabels: { app: readmint-pg }
+  template:
+    metadata:
+      labels: { app: readmint-pg }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_DB, value: readmint }
+            - { name: POSTGRES_USER, value: readmint }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: readmint-secrets, key: RF_PG_PASSWORD }
+          ports: [{ containerPort: 5432 }]
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: readmint-pg
+  labels: { app: readmint-pg }
+spec:
+  selector: { app: readmint-pg }
+  ports: [{ port: 5432, targetPort: 5432 }]

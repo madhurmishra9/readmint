@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Readmint CLI — scriptable refinement and a pre-commit entrypoint.
+
+A thin client over the Readmint API. Exit codes are CI-friendly:
+  0  success
+  2  secrets detected (blocked)
+  3  content loss detected (not written)
+  4  transport / API error
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from typing import Optional
+
+import httpx
+import typer
+
+app = typer.Typer(add_completion=False, help="Refine README files via a Readmint server.")
+
+DEFAULT_API = "http://localhost:8080"
+
+
+def _post(api: str, path: str, **kwargs):
+    try:
+        r = httpx.post(f"{api.rstrip('/')}{path}", timeout=300, **kwargs)
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError as e:
+        typer.secho(f"API error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(4)
+
+
+@app.command()
+def refine(
+    path: str = typer.Argument(..., help="Path to a README/markdown file."),
+    api: str = typer.Option(DEFAULT_API, envvar="READMINT_API"),
+    write: bool = typer.Option(False, help="Overwrite the file in place when safe."),
+    template: Optional[str] = typer.Option(None, help="Org template name."),
+    check_links: bool = typer.Option(False, help="Validate links (network)."),
+    redact: bool = typer.Option(False, help="Redact secrets instead of blocking."),
+    allow_secrets: bool = typer.Option(False, help="Proceed despite high-severity secrets."),
+):
+    """Refine a single file. With --write, only writes when verified & loss-free."""
+    content = Path(path).read_text(encoding="utf-8")
+    form = {
+        "text": content,
+        "check_links": str(check_links).lower(),
+        "redact": str(redact).lower(),
+        "allow_secrets": str(allow_secrets).lower(),
+    }
+    if template:
+        form["template"] = template
+    data = _post(api, "/api/refine", data=form)
+
+    if data.get("status") == "blocked":
+        n = data.get("secrets", {}).get("count", "?")
+        typer.secho(f"Secrets detected ({n}); aborting.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(2)
+    if data.get("loss"):
+        typer.secho("Content loss detected; not writing.", fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(3)
+
+    if write:
+        Path(path).write_text(data["markdown"], encoding="utf-8")
+        before = data["score"]["before"]["score"]
+        after = data["score"]["after"]["score"]
+        typer.secho(f"Refined {path} (score {before} -> {after}).", fg=typer.colors.GREEN)
+    else:
+        sys.stdout.write(data["markdown"])
+
+
+@app.command()
+def score(
+    path: str = typer.Argument(...),
+    api: str = typer.Option(DEFAULT_API, envvar="READMINT_API"),
+    template: Optional[str] = typer.Option(None),
+):
+    """Print the deterministic completeness score (no LLM call)."""
+    content = Path(path).read_text(encoding="utf-8")
+    payload = {"text": content}
+    if template:
+        payload["template"] = template
+    data = _post(api, "/api/score", json=payload)
+    typer.echo(f"score: {data['score']}/100 ({data['mode']})")
+    for name, row in data["breakdown"].items():
+        mark = "[x]" if row["passed"] else "[ ]"
+        typer.echo(f"  {mark} {name} ({row['weight']})")
+
+
+if __name__ == "__main__":
+    app()

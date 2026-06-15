@@ -1,0 +1,15 @@
+[project]
+name = "readmint-backend"
+version = "0.1.0"
+description = "Readmint — README refinement with a deterministic no-loss guard"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"

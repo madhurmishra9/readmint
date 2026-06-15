@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: readmint-config
+  labels: { app: readmint }
+data:
+  RF_ENVIRONMENT: "prod"
+  RF_LOG_LEVEL: "INFO"
+  # Cortex LLM (non-secret bits)
+  RF_LLM_BASE_URL: "https://cortex.example.corp/v1"
+  RF_LLM_MODEL: "cortex-default"
+  RF_LLM_TOKEN_URL: "https://login.example.corp/oauth2/token"
+  RF_LLM_SCOPE: "cortex.completions"
+  # Pipeline
+  RF_MAX_RETRIES: "2"
+  RF_BATCH_CONCURRENCY: "4"
+  RF_SECRET_POLICY: "block"
+  # Outbound proxy / TLS
+  RF_HTTPS_PROXY: "http://proxy.example.corp:8080"
+  RF_CA_BUNDLE_PATH: "/etc/ssl/certs/corp-ca.pem"
+  # Auth
+  RF_AUTH_ENABLED: "true"
+  RF_ADMIN_GROUPS: "readmint-admins"
+  # GitHub (non-secret)
+  RF_GH_API_BASE: "https://api.github.com"
+  # Confluence (non-secret)
+  RF_CONFLUENCE_BASE_URL: "https://confluence.example.corp"
+  RF_CONFLUENCE_SPACE: "DOCS"

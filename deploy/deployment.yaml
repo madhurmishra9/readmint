@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: readmint
+  labels: { app: readmint }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: readmint }
+  template:
+    metadata:
+      labels: { app: readmint }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        # ---- app ----
+        - name: readmint
+          image: registry.example.corp/readmint:latest
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: readmint-config }
+            - secretRef: { name: readmint-secrets }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+        # ---- oauth2-proxy sidecar (Azure AD) ----
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+          args:
+            - --provider=oidc
+            - --oidc-issuer-url=https://login.microsoftonline.com/<tenant>/v2.0
+            - --upstream=http://127.0.0.1:8080
+            - --http-address=0.0.0.0:4180
+            - --email-domain=*
+            - --pass-access-token=true
+            - --set-xauthrequest=true
+            - --skip-provider-button=true
+          envFrom:
+            - secretRef: { name: readmint-oauth }
+          ports: [{ containerPort: 4180 }]
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - { name: tmp, emptyDir: {} }

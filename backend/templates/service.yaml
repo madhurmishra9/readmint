@@ -1,0 +1,10 @@
+name: Internal Service
+description: README contract for a deployable internal service.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Architecture, required: true }
+  - { heading: Local Development, required: true }
+  - { heading: Configuration, required: true }
+  - { heading: Deployment, required: true }
+  - { heading: Runbook, required: true }
+  - { heading: Ownership, required: true }

@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: readmint
+  labels: { app: readmint }
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"   # zip uploads
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300" # long LLM batches
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["readmint.example.corp"]
+      secretName: readmint-tls
+  rules:
+    - host: readmint.example.corp
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: readmint
+                port: { number: 80 }   # -> oauth2-proxy :4180 -> app :8080

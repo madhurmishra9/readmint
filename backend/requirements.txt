@@ -1,0 +1,36 @@
+# --- Core API ---
+fastapi>=0.111
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+pydantic>=2.7
+pydantic-settings>=2.3
+markdown-it-py>=3.0
+PyYAML>=6.0
+
+# --- Observability ---
+structlog>=24.1
+prometheus-client>=0.20
+
+# --- Batch / async ---
+anyio>=4.4
+
+# --- GitHub App auth ---
+PyJWT[crypto]>=2.8
+
+# --- Optional add-ons (degrade gracefully if unused) ---
+redis>=5.0            # cache (RF_REDIS_URL)
+SQLAlchemy>=2.0       # history/audit (RF_DATABASE_URL)
+psycopg[binary]>=3.1  # postgres driver
+alembic>=1.13         # migrations
+
+# --- Export ---
+weasyprint>=62        # PDF (heavy; optional at runtime)
+
+# --- CLI ---
+typer>=0.12
+
+# --- Test / dev ---
+pytest>=8.2
+pytest-asyncio>=0.23
+respx>=0.21
