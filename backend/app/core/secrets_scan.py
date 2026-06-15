@@ -23,7 +23,7 @@ PATTERNS = {
     "generic_secret": re.compile(
         r"(?i)\b(api[_-]?key|secret|password|passwd|token|client[_-]?secret)\b\s*[:=]\s*['\"]?([^\s'\"]{8,})"
     ),
-    "internal_host": re.compile(r"\b[\w][\w.-]*\.(?:internal|corp|local|lbg|intranet)\b"),
+    "internal_host": re.compile(r"\b[\w][\w.-]*\.(?:internal|corp|local|intranet)\b"),
     "email": re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"),
 }
 
