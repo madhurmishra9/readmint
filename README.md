@@ -1,4 +1,4 @@
-# Readmint
+# 🌿 Readmint
 
 ![status](https://img.shields.io/badge/status-active-success)
 ![python](https://img.shields.io/badge/python-3.12-blue)
