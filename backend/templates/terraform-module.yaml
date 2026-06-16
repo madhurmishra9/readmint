@@ -1,0 +1,16 @@
+name: Terraform Module
+description: >-
+  README contract for a Terraform module following the terraform-docs /
+  Cloud Foundation Toolkit (terraform-google-modules) convention: a Usage
+  example, auto-generated Inputs/Outputs tables, a Requirements section
+  (Software / Service Account / APIs), and Contributing.
+sections:
+  - { heading: Usage, required: true }
+  - { heading: Examples, required: false }
+  - { heading: Inputs, required: true }
+  - { heading: Outputs, required: true }
+  - { heading: Requirements, required: true }
+  - { heading: Software, required: false }
+  - { heading: Service Account, required: false }
+  - { heading: APIs, required: false }
+  - { heading: Contributing, required: false }

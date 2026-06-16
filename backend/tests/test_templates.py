@@ -6,6 +6,37 @@ def test_list_templates_finds_yaml():
     names = templates.list_templates()
     assert "service" in names
     assert "library" in names
+    assert "terraform-module" in names
+
+
+def test_load_terraform_module_template():
+    t = templates.load("terraform-module")
+    assert t["name"] == "Terraform Module"
+    headings = {s["heading"]: s["required"] for s in t["sections"]}
+    # terraform-docs/CFT core sections
+    assert headings["Inputs"] is True
+    assert headings["Outputs"] is True
+    assert headings["Requirements"] is True
+    assert headings["Usage"] is True
+    # Requirements sub-sections present but optional
+    assert headings["Service Account"] is False
+    assert headings["APIs"] is False
+
+
+def test_terraform_module_governance_scoring():
+    t = templates.load("terraform-module")
+    md = (
+        "# Cloud Storage Module\n\n"
+        "## Usage\n```hcl\nmodule \"x\" { source = \"...\" }\n```\n\n"
+        "## Inputs\n| Name | Description |\n|---|---|\n\n"
+        "## Outputs\n| Name | Description |\n|---|---|\n"
+    )
+    s = scoring.score(md, t)
+    assert s["mode"] == "template"
+    assert s["breakdown"]["Usage"]["passed"]
+    assert s["breakdown"]["Inputs"]["passed"]
+    assert s["breakdown"]["Outputs"]["passed"]
+    assert not s["breakdown"]["Requirements"]["passed"]
 
 
 def test_load_service_template():
