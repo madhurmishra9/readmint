@@ -41,7 +41,7 @@ class GithubRefineRequest(BaseModel):
     owner: str
     repo: str
     ref: str = "HEAD"
-    base: str = "main"
+    base: Optional[str] = None  # None ⇒ use the repo's default branch
     open_pr: bool = False
     options: RefineOptions = Field(default_factory=RefineOptions)
 

@@ -11,6 +11,7 @@ import re
 
 _HEADING = re.compile(r"^(#{2,3})\s+(.+?)\s*#*\s*$", re.M)
 _TOC_HEADING = re.compile(r"^##\s+(?:table of contents|contents)\s*$", re.I | re.M)
+_FENCED = re.compile(r"```.*?```", re.S)
 
 
 def _slug(text: str, seen: dict) -> str:
@@ -26,7 +27,10 @@ def _slug(text: str, seen: dict) -> str:
 
 def build(md: str) -> str:
     """Return the ToC block (without inserting it), or '' if too few headings."""
-    headings = [(len(h), t.strip()) for h, t in _HEADING.findall(md)]
+    # Strip fenced code first so headings shown *inside* a code example
+    # (common in docs-about-markdown) don't become bogus ToC entries.
+    scan = _FENCED.sub("", md)
+    headings = [(len(h), t.strip()) for h, t in _HEADING.findall(scan)]
     # skip a heading that *is* the ToC itself
     headings = [(lvl, t) for lvl, t in headings if t.strip().lower() not in ("table of contents", "contents")]
     if len(headings) < 3:

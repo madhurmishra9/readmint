@@ -18,7 +18,7 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
     if not settings.github_enabled:
         raise HTTPException(503, "GitHub App not configured on this deployment")
     try:
-        content, path, sha = github.fetch_readme(req.owner, req.repo, req.ref)
+        content, path, _sha = github.fetch_readme(req.owner, req.repo, req.ref)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"could not fetch README: {e}")
 
@@ -36,7 +36,7 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
 
     if req.open_pr:
         try:
-            result["pr_url"] = github.open_pr(req.owner, req.repo, path, sha, result["markdown"], base=req.base)
+            result["pr_url"] = github.open_pr(req.owner, req.repo, path, result["markdown"], base=req.base)
         except Exception as e:  # noqa: BLE001
             raise HTTPException(502, f"refined ok but PR failed: {e}")
     return result

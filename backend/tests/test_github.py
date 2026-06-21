@@ -1,4 +1,5 @@
 import base64
+import json
 
 import httpx
 import pytest
@@ -50,6 +51,10 @@ def test_open_pr_flow_branches_never_pushes_default(gh_app):
     respx.get("https://api.github.com/repos/o/r/git/ref/heads/main").mock(
         return_value=httpx.Response(200, json={"object": {"sha": "basesha"}})
     )
+    # the file sha is read from the *base* branch (decoupled from the fetch ref)
+    respx.get("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={"sha": "basefilesha"})
+    )
     create_ref = respx.post("https://api.github.com/repos/o/r/git/refs").mock(
         return_value=httpx.Response(201, json={})
     )
@@ -59,11 +64,41 @@ def test_open_pr_flow_branches_never_pushes_default(gh_app):
     respx.post("https://api.github.com/repos/o/r/pulls").mock(
         return_value=httpx.Response(201, json={"html_url": "https://github.com/o/r/pull/7"})
     )
-    url = github.open_pr("o", "r", "README.md", "filesha", "# New", base="main")
+    url = github.open_pr("o", "r", "README.md", "# New", base="main")
     assert url == "https://github.com/o/r/pull/7"
     # the new ref is a readmint/* branch, never the default
     body = create_ref.calls.last.request.content.decode()
     assert "refs/heads/readmint/refine-" in body
+
+
+@respx.mock
+def test_open_pr_resolves_default_branch_when_base_omitted(gh_app):
+    respx.post("https://api.github.com/app/installations/456/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "tok"})
+    )
+    # repo's default branch is NOT main — the PR must target it, not "main"
+    respx.get("https://api.github.com/repos/o/r").mock(
+        return_value=httpx.Response(200, json={"default_branch": "develop"})
+    )
+    respx.get("https://api.github.com/repos/o/r/git/ref/heads/develop").mock(
+        return_value=httpx.Response(200, json={"object": {"sha": "dsha"}})
+    )
+    respx.get("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={"sha": "f"})
+    )
+    respx.post("https://api.github.com/repos/o/r/git/refs").mock(
+        return_value=httpx.Response(201, json={})
+    )
+    respx.put("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    pulls = respx.post("https://api.github.com/repos/o/r/pulls").mock(
+        return_value=httpx.Response(201, json={"html_url": "https://github.com/o/r/pull/9"})
+    )
+    url = github.open_pr("o", "r", "README.md", "# New")  # base omitted
+    assert url.endswith("/pull/9")
+    pr_body = json.loads(pulls.calls.last.request.content.decode())
+    assert pr_body["base"] == "develop"
 
 
 def test_disabled_raises(monkeypatch):
