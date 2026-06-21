@@ -8,7 +8,12 @@ from .inventory import extract
 
 
 def validate(md: str, timeout: float = 8.0) -> dict:
-    urls = sorted(u for u in extract(md).urls if u.startswith("http"))
+    inv = extract(md)
+    # Check both link targets *and* image/badge URLs (shields.io badges, screenshots).
+    urls = sorted(
+        {u for u in inv.urls if u.startswith("http")}
+        | {u for u in inv.images if u.startswith("http")}
+    )
     results = []
     with httpx.Client(
         follow_redirects=True,
@@ -20,7 +25,7 @@ def validate(md: str, timeout: float = 8.0) -> dict:
         for url in urls:
             try:
                 r = c.head(url)
-                if r.status_code >= 400 or r.status_code == 405:
+                if r.status_code >= 400:  # HEAD blocked/unsupported → confirm with GET
                     r = c.get(url)
                 results.append({"url": url, "status": r.status_code, "ok": r.status_code < 400})
             except Exception as e:  # noqa: BLE001 — report, never raise
