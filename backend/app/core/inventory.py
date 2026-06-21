@@ -87,10 +87,14 @@ def extract(md: str) -> Inventory:
             inv.inline_code[token] += 1
 
     for m in _IMAGE.finditer(md):
+        if _in_code(m.start()):
+            continue
         inv.images[_strip_url(m.group(1))] += 1
 
     for rx in (_MD_LINK, _BARE_URL, _REF_DEF):
         for m in rx.finditer(md):
+            if _in_code(m.start()):
+                continue
             url = _strip_url(m.group(1))
             if url and not url.startswith("#"):
                 inv.urls[url] += 1

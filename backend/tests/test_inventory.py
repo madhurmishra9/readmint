@@ -90,6 +90,24 @@ def test_code_block_trailing_whitespace_not_loss():
     assert not report["code_blocks"]
 
 
+def test_urls_and_images_inside_code_fence_are_not_inventoried():
+    # URLs/images shown *inside* a code example are part of the snippet, not
+    # standalone data-bearing atoms — they must not leak into .urls/.images
+    # (else the link checker would probe localhost/example URLs from samples).
+    md = (
+        "# T\n\n"
+        "```bash\n"
+        "curl http://localhost:8080/api\n"
+        "open https://inside.example/x  ![z](https://img.inside/i.png)\n"
+        "```\n"
+    )
+    inv = inventory.extract(md)
+    assert not any("localhost" in u or "inside.example" in u for u in inv.urls)
+    assert not any("img.inside" in i for i in inv.images)
+    # the whole snippet is still protected as a single code-block atom
+    assert inv.code_blocks
+
+
 def test_summarize_loss_readable():
     report = {"urls": ["https://x.com"], "code_blocks": [], "inline_code": [],
               "images": [], "numbers": [], "emails": []}
