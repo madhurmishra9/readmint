@@ -40,6 +40,23 @@ def test_nested_indentation_for_h3():
     assert "  - [Deep Dive: Details!]" in out  # h3 indented
 
 
+def test_headings_inside_code_fence_are_ignored():
+    md = (
+        "# Title\n\nIntro.\n\n"
+        "## Real One\ntext\n\n"
+        "```markdown\n## Example Heading\n### Also Example\n```\n\n"
+        "## Real Two\nmore\n\n"
+        "## Real Three\nmore\n"
+    )
+    out = toc.ensure(md)
+    # the example headings stay in the body (preserved) but are NOT listed in the ToC
+    assert "- [Example Heading]" not in out
+    assert "- [Also Example]" not in out
+    assert "- [Real One](#real-one)" in out
+    assert "- [Real Two](#real-two)" in out
+    assert "- [Real Three](#real-three)" in out
+
+
 def test_idempotent():
     once = toc.ensure(DOC)
     twice = toc.ensure(once)
