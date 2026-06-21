@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import base64
 import time
-from typing import Tuple
+from typing import Optional, Tuple
 
 import httpx
 import jwt
@@ -62,27 +62,38 @@ def fetch_readme(owner: str, repo: str, ref: str = "HEAD") -> Tuple[str, str, st
         return content, data["path"], data["sha"]
 
 
-def open_pr(owner: str, repo: str, path: str, sha: str, new_content: str, base: str = "main") -> str:
+def _default_branch(c: httpx.Client, owner: str, repo: str, headers: dict) -> str:
+    r = c.get(f"/repos/{owner}/{repo}", headers=headers)
+    r.raise_for_status()
+    return r.json()["default_branch"]
+
+
+def open_pr(owner: str, repo: str, path: str, new_content: str, *, base: Optional[str] = None) -> str:
     token = _installation_token()
     branch = f"readmint/refine-{int(time.time())}"
     headers = _auth(token)
     with _client() as c:
+        # Resolve the base branch from the repo when not given — never assume "main".
+        if not base:
+            base = _default_branch(c, owner, repo, headers)
         base_sha = c.get(f"/repos/{owner}/{repo}/git/ref/heads/{base}", headers=headers).json()["object"]["sha"]
+        # The file sha must match the file *on the base branch*, not whatever ref
+        # the content was originally read at (else the PUT 409s); 404 ⇒ new file.
+        cur = c.get(f"/repos/{owner}/{repo}/contents/{path}", params={"ref": base}, headers=headers)
+        sha = cur.json().get("sha") if cur.status_code < 400 else None
         c.post(
             f"/repos/{owner}/{repo}/git/refs",
             headers=headers,
             json={"ref": f"refs/heads/{branch}", "sha": base_sha},
         ).raise_for_status()
-        c.put(
-            f"/repos/{owner}/{repo}/contents/{path}",
-            headers=headers,
-            json={
-                "message": "docs: refine README via Readmint",
-                "content": base64.b64encode(new_content.encode()).decode(),
-                "sha": sha,
-                "branch": branch,
-            },
-        ).raise_for_status()
+        put_body = {
+            "message": "docs: refine README via Readmint",
+            "content": base64.b64encode(new_content.encode()).decode(),
+            "branch": branch,
+        }
+        if sha:
+            put_body["sha"] = sha
+        c.put(f"/repos/{owner}/{repo}/contents/{path}", headers=headers, json=put_body).raise_for_status()
         pr = c.post(
             f"/repos/{owner}/{repo}/pulls",
             headers=headers,
