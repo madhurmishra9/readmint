@@ -43,6 +43,9 @@ class GithubRefineRequest(BaseModel):
     ref: str = "HEAD"
     base: Optional[str] = None  # None ⇒ use the repo's default branch
     open_pr: bool = False
+    # Per-request Personal Access Token. When set, the user's own PAT is used to
+    # fetch + open the PR (no server-side GitHub App required). Never persisted.
+    pat: Optional[str] = Field(default=None, exclude=True, repr=False)
     options: RefineOptions = Field(default_factory=RefineOptions)
 
 

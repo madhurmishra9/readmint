@@ -15,10 +15,19 @@ router = APIRouter(prefix="/api/github", tags=["github"])
 
 @router.post("/refine")
 async def github_refine(req: GithubRefineRequest, user: User = Depends(current_user)):
-    if not settings.github_enabled:
-        raise HTTPException(503, "GitHub App not configured on this deployment")
+    # A per-request PAT lets a user bring their own token; otherwise fall back to
+    # a deployment-wide GitHub App. At least one must be available.
+    token = req.pat or None
+    if not token and not settings.github_enabled:
+        raise HTTPException(503, "Provide a GitHub Personal Access Token, or configure a GitHub App on this deployment")
+    if token:
+        try:
+            github.verify_token(token)
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(401, f"GitHub token rejected: {e}")
+
     try:
-        content, path, _sha = github.fetch_readme(req.owner, req.repo, req.ref)
+        content, path, _sha = github.fetch_readme(req.owner, req.repo, req.ref, token=token)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"could not fetch README: {e}")
 
@@ -36,7 +45,9 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
 
     if req.open_pr:
         try:
-            result["pr_url"] = github.open_pr(req.owner, req.repo, path, result["markdown"], base=req.base)
+            result["pr_url"] = github.open_pr(
+                req.owner, req.repo, path, result["markdown"], base=req.base, token=token
+            )
         except Exception as e:  # noqa: BLE001
             raise HTTPException(502, f"refined ok but PR failed: {e}")
     return result

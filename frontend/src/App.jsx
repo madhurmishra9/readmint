@@ -6,7 +6,7 @@ import SecretReport from "./components/SecretReport.jsx";
 import DiffPanel from "./components/DiffPanel.jsx";
 import ExportBar from "./components/ExportBar.jsx";
 import BatchPanel from "./components/BatchPanel.jsx";
-import { refineText, refineFile, batchZip } from "./api.js";
+import { refineText, refineFile, batchZip, githubRefine } from "./api.js";
 
 export default function App() {
   const [busy, setBusy] = useState(false);
@@ -27,6 +27,18 @@ export default function App() {
         setOriginal(source.text);
         res = await refineText(source.text, opts);
       }
+      setResult(res);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleGithub(gh, opts) {
+    setBusy(true); setError(null); setBatch(null); setResult(null); setAck(false); setOriginal("");
+    try {
+      const res = await githubRefine(gh, opts);
       setResult(res);
     } catch (e) {
       setError(e.message);
@@ -59,7 +71,7 @@ export default function App() {
 
       <main className="layout">
         <section className="left">
-          <InputPanel onRefine={handleRefine} onBatchZip={handleBatchZip} busy={busy} />
+          <InputPanel onRefine={handleRefine} onBatchZip={handleBatchZip} onGithub={handleGithub} busy={busy} />
           {error && <div className="banner danger">Error: {error}</div>}
         </section>
 
@@ -87,6 +99,14 @@ export default function App() {
                       <p>{result.links.checked} checked · {result.links.broken.length} broken</p>
                       <ul>{result.links.broken.map((b) => <li key={b.url}><code>{b.url}</code> → {b.status || b.error}</li>)}</ul>
                     </div>
+                  )}
+                  {result.pr_url && (
+                    <div className="banner ok">
+                      Pull request opened: <a href={result.pr_url} target="_blank" rel="noreferrer">{result.pr_url}</a>
+                    </div>
+                  )}
+                  {result.pr_skipped_reason && (
+                    <div className="banner warn">PR skipped — {result.pr_skipped_reason}.</div>
                   )}
                   <DiffPanel before={original} after={result.markdown} />
                   {hasFindings && (

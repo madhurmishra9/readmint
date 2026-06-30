@@ -33,6 +33,35 @@ export async function batchZip(file, opts = {}) {
   return r.json();
 }
 
+export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opts = {}) {
+  const body = {
+    owner,
+    repo,
+    ref: ref || "HEAD",
+    open_pr: !!open_pr,
+    options: {
+      template: opts.template || null,
+      check_links: !!opts.check_links,
+      summary: !!opts.summary,
+      allow_secrets: !!opts.allow_secrets,
+      redact: !!opts.redact,
+    },
+  };
+  if (base) body.base = base;
+  if (pat) body.pat = pat;
+  const r = await fetch("/api/github/refine", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    let detail = `${r.status}`;
+    try { detail = (await r.json()).detail || detail; } catch { /* ignore */ }
+    throw new Error(`GitHub refine failed: ${detail}`);
+  }
+  return r.json();
+}
+
 export async function listTemplates() {
   const r = await fetch("/api/templates");
   return r.ok ? (await r.json()).templates : [];
