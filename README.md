@@ -101,19 +101,40 @@ docker run -p 8080:8080 \
 
 Open http://localhost:8080, paste or attach a README, and refine. The API is at http://localhost:8080/docs.
 
+## LLM providers
+
+Readmint resolves a provider on every call, in this order:
+
+1. **Stub** — when `RF_LLM_STUB=true`. No network; a deterministic identity refine that still preserves every atom. Used by tests/CI.
+2. **Cortex** — when `RF_LLM_BASE_URL` is set. The hosted LLM (OAuth2 client-credentials).
+3. **Local** — the default when Cortex isn't configured: any OpenAI-compatible server reachable at `RF_LOCAL_LLM_BASE_URL` (**Ollama** by default, also LM Studio / vLLM). If nothing is reachable, Readmint falls back to the stub, so it always runs.
+
+So with **no configuration at all**, Readmint uses your **local LLM if one is running**, and the stub otherwise. The active provider and the model in use are shown in the UI; when a local server is detected, a **model selector** lets you pick among the models it reports. Reasoning ("thinking") models are supported — their `<think>…</think>` scratchpad is stripped from every completion so it never reaches the README or the no-loss verifier.
+
+```bash
+# Use a local Ollama model (after `ollama pull qwen3`):
+ollama serve &                       # exposes http://localhost:11434
+RF_LOCAL_LLM_MODEL=qwen3 uvicorn app.main:app --port 8080
+```
+
+> Running in Docker? `localhost` is the container, not your host. The one-click `deploy.sh` / `deploy.ps1` already wire `host.docker.internal` so a host Ollama is reached automatically; otherwise set `RF_LOCAL_LLM_BASE_URL=http://host.docker.internal:11434/v1`.
+
 ## Configuration
 
-All settings are environment variables prefixed `RF_`. With no LLM variables set, the app runs in **stub mode** (`RF_LLM_BASE_URL` empty ⇒ no network call), so it is usable out of the box.
+All settings are environment variables prefixed `RF_`.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `RF_LLM_STUB` | no | `false` | Force stub mode (also implied when `RF_LLM_BASE_URL` is empty) |
-| `RF_LLM_BASE_URL` | for live LLM | — | Cortex API base URL (OpenAI-compatible `/chat/completions`) |
-| `RF_LLM_TOKEN_URL` | for live LLM | — | OAuth2 client-credentials token endpoint |
-| `RF_LLM_CLIENT_ID` | for live LLM | — | OAuth2 client id |
-| `RF_LLM_CLIENT_SECRET` | for live LLM | — | OAuth2 client secret |
+| `RF_LLM_STUB` | no | `false` | Force stub mode (no LLM call) |
+| `RF_LLM_BASE_URL` | for Cortex | — | Cortex API base URL (OpenAI-compatible `/chat/completions`) |
+| `RF_LLM_TOKEN_URL` | for Cortex | — | OAuth2 client-credentials token endpoint |
+| `RF_LLM_CLIENT_ID` | for Cortex | — | OAuth2 client id |
+| `RF_LLM_CLIENT_SECRET` | for Cortex | — | OAuth2 client secret |
 | `RF_LLM_SCOPE` | no | — | OAuth2 scope |
-| `RF_LLM_MODEL` | no | `cortex-default` | Model identifier |
+| `RF_LLM_MODEL` | no | `cortex-default` | Cortex model identifier |
+| `RF_LOCAL_LLM_BASE_URL` | no | `http://localhost:11434/v1` | Local OpenAI-compatible server (Ollama/LM Studio/vLLM) |
+| `RF_LOCAL_LLM_MODEL` | no | — | Pinned local model (empty ⇒ first the server reports) |
+| `RF_LOCAL_LLM_TIMEOUT` | no | `600` | Per-call timeout for local models (seconds) |
 | `RF_MAX_RETRIES` | no | `2` | Loss-repair retries before reporting residual loss |
 | `RF_SECRET_POLICY` | no | `block` | `block` or `redact` high-severity findings |
 | `RF_HTTPS_PROXY` | no | — | Corporate egress proxy (honoured by every outbound call) |

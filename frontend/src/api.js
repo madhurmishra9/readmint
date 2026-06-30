@@ -3,7 +3,7 @@
 export async function refineText(text, opts = {}) {
   const form = new FormData();
   form.append("text", text);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact"]) {
+  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -14,7 +14,7 @@ export async function refineText(text, opts = {}) {
 export async function refineFile(file, opts = {}) {
   const form = new FormData();
   form.append("file", file);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact"]) {
+  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -45,6 +45,7 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
       summary: !!opts.summary,
       allow_secrets: !!opts.allow_secrets,
       redact: !!opts.redact,
+      model: opts.model || null,
     },
   };
   if (base) body.base = base;
@@ -65,6 +66,11 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
 export async function listTemplates() {
   const r = await fetch("/api/templates");
   return r.ok ? (await r.json()).templates : [];
+}
+
+export async function getLlmInfo() {
+  const r = await fetch("/api/llm");
+  return r.ok ? r.json() : { provider: "stub", models: [], selected: "" };
 }
 
 export async function exportDoc(markdown, format, title = "README") {

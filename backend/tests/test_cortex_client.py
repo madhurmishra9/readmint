@@ -14,8 +14,10 @@ def test_stub_mode_echoes_document():
     assert out == "# Hi\n\ncontent here"
 
 
-def test_no_base_url_is_stub():
-    c = CortexClient(Settings(llm_base_url=""))
+def test_no_llm_configured_falls_back_to_stub():
+    # No Cortex URL and no reachable local server (port 1 refuses) ⇒ stub.
+    c = CortexClient(Settings(llm_base_url="", local_llm_base_url="http://127.0.0.1:1/v1"))
+    assert c.provider() == "stub"
     assert c.is_stub
 
 

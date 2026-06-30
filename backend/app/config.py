@@ -36,9 +36,18 @@ class Settings(BaseSettings):
     llm_scope: str = ""
     llm_temperature: float = 0.2
     llm_timeout: float = 180.0
-    # When true (or when llm_base_url is empty) the client runs in stub mode and
-    # never makes a network call — used by tests and local dev.
+    # When true the client runs in stub mode and never makes a network call —
+    # used by tests and CI. When false and no Cortex URL is set, the client
+    # auto-detects a local LLM (see below) and only falls back to the stub if
+    # none is reachable.
     llm_stub: bool = False
+
+    # --- Local LLM (Ollama / LM Studio / vLLM — OpenAI-compatible) ---
+    # Used automatically when Cortex is not configured (llm_base_url empty) and a
+    # server is reachable here. Ollama's default is http://localhost:11434/v1.
+    local_llm_base_url: str = "http://localhost:11434/v1"
+    local_llm_model: str = ""  # empty ⇒ first model the server reports
+    local_llm_timeout: float = 600.0  # local models can be slow on first load
 
     # --- Pipeline ---
     max_retries: int = 2
@@ -98,6 +107,11 @@ class Settings(BaseSettings):
 
     @property
     def llm_enabled(self) -> bool:
+        return bool(self.llm_base_url) and not self.llm_stub
+
+    @property
+    def cortex_enabled(self) -> bool:
+        """Cortex (the hosted LLM) is the provider when its URL is configured."""
         return bool(self.llm_base_url) and not self.llm_stub
 
     def admin_group_set(self) -> set[str]:

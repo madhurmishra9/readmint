@@ -35,8 +35,15 @@ if ($LASTEXITCODE -ne 0) { throw "docker build failed" }
 Write-Host "-> Replacing any existing container ..." -ForegroundColor Cyan
 docker rm -f $Name 2>$null | Out-Null
 
-$envArgs = @()
-if (Test-Path .env) { $envArgs = @("--env-file", ".env"); Write-Host "-> Using .env for configuration" -ForegroundColor Cyan }
+# Make a host-side local LLM (e.g. Ollama on :11434) reachable from the container.
+$envArgs = @("--add-host=host.docker.internal:host-gateway")
+if (Test-Path .env) {
+  $envArgs += @("--env-file", ".env")
+  Write-Host "-> Using .env for configuration" -ForegroundColor Cyan
+} else {
+  $envArgs += @("-e", "RF_LOCAL_LLM_BASE_URL=http://host.docker.internal:11434/v1")
+  Write-Host "-> No .env - will auto-detect a local LLM on the host (Ollama :11434), else stub" -ForegroundColor Cyan
+}
 
 Write-Host "-> Starting container on port $Port ..." -ForegroundColor Cyan
 docker run -d --name $Name -p "${Port}:8080" @envArgs $Image | Out-Null

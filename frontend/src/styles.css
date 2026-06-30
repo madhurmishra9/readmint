@@ -26,6 +26,9 @@ textarea, input[type=file], select { width:100%; background:#0d0f14; color:var(-
 .github-form label { display:flex; gap:.35rem; align-items:center; color:var(--muted); }
 .github-form .hint { color:var(--muted); font-size:.8rem; margin:.25rem 0 0; }
 .banner.ok a, .banner.success a { color:inherit; }
+.llm-badge { font-size:.78rem; color:var(--muted); margin:-.25rem 0 .5rem; }
+.llm-badge strong { color:var(--fg); text-transform:uppercase; letter-spacing:.03em; }
+.llm-badge.local strong { color:var(--mint); }
 .options { display:flex; flex-wrap:wrap; gap:.75rem; margin:.75rem 0; color:var(--muted); align-items:center; }
 .options label { display:flex; gap:.35rem; align-items:center; }
 .options select { width:auto; }

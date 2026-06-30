@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from . import __version__
 from .config import settings
 from .core import templates as templates_mod
+from .cortex_client import cortex
 from .observability import setup_logging, setup_metrics
 from .routers import batch, export, github, refine, score
 from .services import history
@@ -42,7 +43,7 @@ async def healthz():
     return {
         "status": "ok",
         "version": __version__,
-        "llm": "stub" if not settings.llm_enabled else "live",
+        "llm": cortex.provider(),
         "addons": {
             "cache": settings.cache_enabled,
             "history": settings.history_enabled,
@@ -56,6 +57,14 @@ async def healthz():
 @app.get("/api/templates", tags=["templates"])
 async def list_templates():
     return {"templates": templates_mod.list_templates()}
+
+
+@app.get("/api/llm", tags=["llm"])
+async def llm_info():
+    """Active provider (stub | cortex | local), selectable models, default pick.
+
+    The UI uses this to populate the model selector when a local LLM is in use."""
+    return cortex.provider_info()
 
 
 @app.get("/api/history", tags=["history"])

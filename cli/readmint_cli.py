@@ -40,6 +40,7 @@ def refine(
     check_links: bool = typer.Option(False, help="Validate links (network)."),
     redact: bool = typer.Option(False, help="Redact secrets instead of blocking."),
     allow_secrets: bool = typer.Option(False, help="Proceed despite high-severity secrets."),
+    model: Optional[str] = typer.Option(None, help="LLM model id (e.g. a local model)."),
 ):
     """Refine a single file. With --write, only writes when verified & loss-free."""
     content = Path(path).read_text(encoding="utf-8")
@@ -51,6 +52,8 @@ def refine(
     }
     if template:
         form["template"] = template
+    if model:
+        form["model"] = model
     data = _post(api, "/api/refine", data=form)
 
     if data.get("status") == "blocked":
