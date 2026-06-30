@@ -30,7 +30,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 
 - **Lossless refinement** — deterministic content-preservation guard; output rejected/retried on any loss, with residual loss reported rather than shipped.
 - **Batch processing** — refine a zip or a list of documents with a bounded worker pool.
-- **GitHub-native** — pull a README from `owner/repo@ref` and open a PR (always on a new branch, never the default).
+- **GitHub-native** — pull a README from `owner/repo@ref` and open a PR (always on a new branch, never the default). Authenticate with your own **Personal Access Token** (bring-your-own, per request) or a deployment-wide GitHub App.
 - **Secret & PII gate** — scans for keys, tokens, internal hostnames, and emails *before* any data reaches the LLM.
 - **Documentation scoring** — deterministic completeness score, before and after.
 - **Template enforcement** — map content into org-standard section structures.
@@ -103,6 +103,20 @@ All settings are environment variables prefixed `RF_`. With no LLM variables set
 ### Web UI
 
 Paste text, attach a `.md` file, or upload a zip. Review the score change, the diff, and the loss/secret reports, then download or open a PR.
+
+### GitHub (bring your own PAT)
+
+Open the **GitHub** tab in the web UI, paste a [Personal Access Token](https://github.com/settings/tokens) with `repo` scope, enter `owner` / `repo`, and refine. Readmint fetches the live README with your token, runs the full no-loss pipeline, then — if "open a PR" is checked — commits the refined README on a **new branch** and opens a pull request. The token is used only for that request and is never stored.
+
+The same flow is available over the API:
+
+```bash
+curl -X POST http://localhost:8080/api/github/refine \
+  -H "Content-Type: application/json" \
+  -d '{"owner":"acme","repo":"widgets","open_pr":true,"pat":"ghp_xxx"}'
+```
+
+`pat` is optional: omit it and the request falls back to the configured GitHub App (`RF_GH_*`). The PR always targets the repo's default branch unless you pass `base`.
 
 ### CLI
 

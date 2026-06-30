@@ -105,3 +105,60 @@ def test_disabled_raises(monkeypatch):
     monkeypatch.setattr(settings, "gh_app_id", "")
     with pytest.raises(RuntimeError):
         github._installation_token()
+
+
+# --- PAT mode: a caller-supplied token is used directly, no App needed ---
+
+@respx.mock
+def test_fetch_readme_with_pat_skips_installation_token(monkeypatch):
+    # No GitHub App configured — the PAT alone must drive the call.
+    monkeypatch.setattr(settings, "gh_app_id", "")
+    monkeypatch.setattr(settings, "gh_installation_id", "")
+    monkeypatch.setattr(settings, "gh_private_key", "")
+    install = respx.post("https://api.github.com/app/installations/456/access_tokens").mock(
+        return_value=httpx.Response(201, json={"token": "tok"})
+    )
+    readme = respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(b"# Hello").decode(),
+            "path": "README.md",
+            "sha": "deadbeef",
+        })
+    )
+    content, path, sha = github.fetch_readme("o", "r", token="ghp_pat")
+    assert content == "# Hello"
+    assert not install.called  # never minted an installation token
+    assert readme.calls.last.request.headers["authorization"] == "Bearer ghp_pat"
+
+
+@respx.mock
+def test_verify_token_returns_login():
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    assert github.verify_token("ghp_pat") == "octocat"
+
+
+@respx.mock
+def test_open_pr_with_pat_uses_token_and_branches(monkeypatch):
+    monkeypatch.setattr(settings, "gh_app_id", "")
+    respx.get("https://api.github.com/repos/o/r/git/ref/heads/main").mock(
+        return_value=httpx.Response(200, json={"object": {"sha": "basesha"}})
+    )
+    respx.get("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={"sha": "basefilesha"})
+    )
+    create_ref = respx.post("https://api.github.com/repos/o/r/git/refs").mock(
+        return_value=httpx.Response(201, json={})
+    )
+    respx.put("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    respx.post("https://api.github.com/repos/o/r/pulls").mock(
+        return_value=httpx.Response(201, json={"html_url": "https://github.com/o/r/pull/11"})
+    )
+    url = github.open_pr("o", "r", "README.md", "# New", base="main", token="ghp_pat")
+    assert url.endswith("/pull/11")
+    assert create_ref.calls.last.request.headers["authorization"] == "Bearer ghp_pat"
+    body = create_ref.calls.last.request.content.decode()
+    assert "refs/heads/readmint/refine-" in body

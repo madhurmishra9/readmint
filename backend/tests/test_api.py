@@ -1,7 +1,10 @@
+import base64
 import io
 import zipfile
 
+import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -92,3 +95,49 @@ def test_history_records_runs():
 def test_github_disabled_returns_503():
     r = client.post("/api/github/refine", json={"owner": "o", "repo": "r"})
     assert r.status_code == 503
+
+
+@respx.mock
+def test_github_refine_with_pat_opens_pr():
+    """A user-supplied PAT drives fetch → refine → branch → commit → PR end-to-end."""
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(DOC.encode()).decode(),
+            "path": "README.md",
+            "sha": "src",
+        })
+    )
+    respx.get("https://api.github.com/repos/o/r").mock(
+        return_value=httpx.Response(200, json={"default_branch": "main"})
+    )
+    respx.get("https://api.github.com/repos/o/r/git/ref/heads/main").mock(
+        return_value=httpx.Response(200, json={"object": {"sha": "basesha"}})
+    )
+    respx.get("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={"sha": "filesha"})
+    )
+    respx.post("https://api.github.com/repos/o/r/git/refs").mock(
+        return_value=httpx.Response(201, json={})
+    )
+    respx.put("https://api.github.com/repos/o/r/contents/README.md").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    respx.post("https://api.github.com/repos/o/r/pulls").mock(
+        return_value=httpx.Response(201, json={"html_url": "https://github.com/o/r/pull/42"})
+    )
+    r = client.post(
+        "/api/github/refine",
+        json={"owner": "o", "repo": "r", "open_pr": True, "pat": "ghp_token"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["pr_url"] == "https://github.com/o/r/pull/42"
+
+
+@respx.mock
+def test_github_refine_rejects_bad_pat():
+    respx.get("https://api.github.com/user").mock(return_value=httpx.Response(401, json={}))
+    r = client.post("/api/github/refine", json={"owner": "o", "repo": "r", "pat": "bad"})
+    assert r.status_code == 401

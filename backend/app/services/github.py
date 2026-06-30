@@ -1,9 +1,15 @@
-"""GitHub App integration — pull a README, open a PR.
+"""GitHub integration — pull a README, open a PR.
 
-GitHub App auth: sign a short-lived JWT with the app private key, exchange it
-for an installation token. Every call honours the corporate proxy + CA bundle.
-The PR flow is pull → branch → commit → PR; it NEVER pushes to the default
-branch.
+Two auth modes, both reaching the same pull → branch → commit → PR flow that
+NEVER pushes to the default branch:
+
+* **PAT** — the caller supplies a Personal Access Token (per-request, bring your
+  own token). Used directly as a bearer token.
+* **GitHub App** — sign a short-lived JWT with the app private key and exchange
+  it for an installation token (deployment-wide, configured via RF_GH_*).
+
+When a token is passed explicitly it is a PAT and used as-is; otherwise the App
+installation token is minted. Every call honours the corporate proxy + CA bundle.
 """
 from __future__ import annotations
 
@@ -52,8 +58,21 @@ def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
 
 
-def fetch_readme(owner: str, repo: str, ref: str = "HEAD") -> Tuple[str, str, str]:
-    token = _installation_token()
+def _resolve_token(token: Optional[str]) -> str:
+    """A caller-supplied PAT wins; otherwise mint a GitHub App installation token."""
+    return token if token else _installation_token()
+
+
+def verify_token(token: str) -> str:
+    """Return the authenticated login for a PAT, raising on an invalid/expired token."""
+    with _client() as c:
+        r = c.get("/user", headers=_auth(token))
+        r.raise_for_status()
+        return r.json()["login"]
+
+
+def fetch_readme(owner: str, repo: str, ref: str = "HEAD", *, token: Optional[str] = None) -> Tuple[str, str, str]:
+    token = _resolve_token(token)
     with _client() as c:
         r = c.get(f"/repos/{owner}/{repo}/readme", params={"ref": ref}, headers=_auth(token))
         r.raise_for_status()
@@ -68,8 +87,16 @@ def _default_branch(c: httpx.Client, owner: str, repo: str, headers: dict) -> st
     return r.json()["default_branch"]
 
 
-def open_pr(owner: str, repo: str, path: str, new_content: str, *, base: Optional[str] = None) -> str:
-    token = _installation_token()
+def open_pr(
+    owner: str,
+    repo: str,
+    path: str,
+    new_content: str,
+    *,
+    base: Optional[str] = None,
+    token: Optional[str] = None,
+) -> str:
+    token = _resolve_token(token)
     branch = f"readmint/refine-{int(time.time())}"
     headers = _auth(token)
     with _client() as c:
