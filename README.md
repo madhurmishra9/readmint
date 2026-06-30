@@ -53,6 +53,19 @@ The LLM may reorder, re-level, and reword freely. It may **not** drop a code blo
 
 ## Quick Start
 
+### One-click deploy
+
+From the repo root, run the script for your OS — it builds the image, starts the container on http://localhost:8080, waits for health, and opens your browser:
+
+```bash
+./deploy.sh              # macOS / Linux   (PORT=9000 ./deploy.sh to change port)
+```
+```powershell
+.\deploy.ps1             # Windows         (.\deploy.ps1 -Port 9000 to change port)
+```
+
+Both require Docker. Drop a `.env` in the repo root (e.g. `RF_LLM_*`) and it's passed straight into the container; with none, the app runs in stub mode.
+
 ### Run with Docker
 
 ```bash
