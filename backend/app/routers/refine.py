@@ -24,6 +24,7 @@ async def refine(
     summary: bool = Form(default=False),
     allow_secrets: bool = Form(default=False),
     redact: bool = Form(default=False),
+    model: str | None = Form(default=None),
     user: User = Depends(current_user),
 ):
     content = text
@@ -43,6 +44,7 @@ async def refine(
             "summary": summary,
             "allow_secrets": allow_secrets,
             "redact": redact,
+            "model": model,
         },
     )
     history.record(user.email, "refine", name, result)

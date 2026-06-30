@@ -29,8 +29,15 @@ docker build -t "$IMAGE" .
 echo "→ Replacing any existing container …"
 docker rm -f "$NAME" >/dev/null 2>&1 || true
 
-ENV_ARGS=()
-[ -f .env ] && ENV_ARGS+=(--env-file .env) && echo "→ Using .env for configuration"
+# Make a host-side local LLM (e.g. Ollama on :11434) reachable from the container.
+ENV_ARGS=(--add-host=host.docker.internal:host-gateway)
+if [ -f .env ]; then
+  ENV_ARGS+=(--env-file .env)
+  echo "→ Using .env for configuration"
+else
+  ENV_ARGS+=(-e "RF_LOCAL_LLM_BASE_URL=http://host.docker.internal:11434/v1")
+  echo "→ No .env — will auto-detect a local LLM on the host (Ollama :11434), else stub"
+fi
 
 echo "→ Starting container on port $PORT …"
 docker run -d --name "$NAME" -p "${PORT}:8080" "${ENV_ARGS[@]}" "$IMAGE" >/dev/null

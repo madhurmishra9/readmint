@@ -53,8 +53,9 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
     before_inv = inventory.extract(sanitized)
 
     # 4. LLM refine
+    model = opts.get("model") or None
     system = prompts.system_for(template)
-    output = cortex.complete(system, prompts.USER.format(document=sanitized))
+    output = cortex.complete(system, prompts.USER.format(document=sanitized), model=model)
 
     # 5. verify / retry on any content loss
     retries = 0
@@ -62,7 +63,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
     while inventory.has_loss(report) and retries < settings.max_retries:
         retries += 1
         log.info("pipeline.repair_retry", attempt=retries)
-        output = cortex.complete(system, prompts.repair(report, output))
+        output = cortex.complete(system, prompts.repair(report, output), model=model)
         report = inventory.diff(before_inv, inventory.extract(output))
 
     # 6. deterministic ToC + anchors

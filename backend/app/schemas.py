@@ -12,6 +12,7 @@ class RefineOptions(BaseModel):
     summary: bool = False
     allow_secrets: bool = False
     redact: bool = False
+    model: Optional[str] = None  # override the LLM model (e.g. a local model id)
 
     def to_opts(self) -> dict:
         return {
@@ -19,6 +20,7 @@ class RefineOptions(BaseModel):
             "summary": self.summary,
             "allow_secrets": self.allow_secrets,
             "redact": self.redact,
+            "model": self.model,
         }
 
 

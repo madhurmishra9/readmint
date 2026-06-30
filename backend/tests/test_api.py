@@ -92,6 +92,15 @@ def test_history_records_runs():
     assert any(run["action"] == "refine" for run in r.json()["runs"])
 
 
+def test_llm_info_endpoint():
+    # Tests run with RF_LLM_STUB=true ⇒ provider is the stub, no models.
+    r = client.get("/api/llm")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["provider"] in {"stub", "cortex", "local"}
+    assert "models" in body and "selected" in body
+
+
 def test_github_disabled_returns_503():
     r = client.post("/api/github/refine", json={"owner": "o", "repo": "r"})
     assert r.status_code == 503

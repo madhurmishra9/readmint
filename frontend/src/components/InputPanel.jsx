@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { listTemplates } from "../api.js";
+import { listTemplates, getLlmInfo } from "../api.js";
 
 export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
   const [mode, setMode] = useState("paste"); // paste | attach | zip | github
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [templates, setTemplates] = useState([]);
-  const [opts, setOpts] = useState({ template: "", check_links: false, summary: false, redact: false, allow_secrets: false });
+  const [llm, setLlm] = useState({ provider: "stub", models: [], selected: "" });
+  const [opts, setOpts] = useState({ template: "", check_links: false, summary: false, redact: false, allow_secrets: false, model: "" });
   const [gh, setGh] = useState({ pat: "", owner: "", repo: "", ref: "HEAD", base: "", open_pr: true });
 
   useEffect(() => { listTemplates().then(setTemplates).catch(() => {}); }, []);
+  useEffect(() => { getLlmInfo().then((i) => { setLlm(i); setOpts((o) => ({ ...o, model: i.selected || "" })); }).catch(() => {}); }, []);
 
   const setOpt = (k, v) => setOpts((o) => ({ ...o, [k]: v }));
   const setGhField = (k, v) => setGh((g) => ({ ...g, [k]: v }));
+  const showModelPicker = llm.provider === "local" && llm.models.length > 0;
 
   function submit() {
     const flags = {
@@ -21,6 +24,7 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
       summary: opts.summary,
       redact: opts.redact,
       allow_secrets: opts.allow_secrets,
+      model: opts.model || "",
     };
     if (mode === "github") onGithub(gh, flags);
     else if (mode === "zip" && file) onBatchZip(file, flags);
@@ -76,6 +80,13 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
             {templates.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
+        {showModelPicker && (
+          <label>Local model
+            <select value={opts.model} onChange={(e) => setOpt("model", e.target.value)}>
+              {llm.models.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
+        )}
         {mode !== "zip" && (
           <label><input type="checkbox" checked={opts.summary}
             onChange={(e) => setOpt("summary", e.target.checked)} /> Change summary</label>
@@ -86,6 +97,12 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
           onChange={(e) => setOpt("redact", e.target.checked)} /> Redact secrets</label>
         <label><input type="checkbox" checked={opts.allow_secrets}
           onChange={(e) => setOpt("allow_secrets", e.target.checked)} /> Allow secrets</label>
+      </div>
+
+      <div className={`llm-badge ${llm.provider}`}>
+        LLM: <strong>{llm.provider}</strong>
+        {llm.provider === "local" && llm.models.length === 0 && " (no models found)"}
+        {llm.provider === "stub" && " — no LLM reachable; deterministic identity refine"}
       </div>
 
       <button className="primary" disabled={busy || (mode === "github" && !ghReady)} onClick={submit}>
