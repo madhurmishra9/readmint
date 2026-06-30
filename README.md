@@ -55,16 +55,30 @@ The LLM may reorder, re-level, and reword freely. It may **not** drop a code blo
 
 ### One-click deploy
 
-From the repo root, run the script for your OS — it builds the image, starts the container on http://localhost:8080, waits for health, and opens your browser:
+The fastest way to get a running instance. **Prerequisite:** [Docker](https://docs.docker.com/get-docker/) installed and running. From the repo root:
 
 ```bash
-./deploy.sh              # macOS / Linux   (PORT=9000 ./deploy.sh to change port)
+./deploy.sh              # macOS / Linux
 ```
 ```powershell
-.\deploy.ps1             # Windows         (.\deploy.ps1 -Port 9000 to change port)
+.\deploy.ps1             # Windows
 ```
 
-Both require Docker. Drop a `.env` in the repo root (e.g. `RF_LLM_*`) and it's passed straight into the container; with none, the app runs in stub mode.
+The script builds the image, replaces any previous `readmint` container, starts it, waits for `/healthz`, prints the URL, and opens your browser at http://localhost:8080. If the container never goes healthy, it prints the logs.
+
+**Options**
+
+| | macOS / Linux | Windows |
+|---|---|---|
+| Change the host port | `PORT=9000 ./deploy.sh` | `.\deploy.ps1 -Port 9000` |
+| Live LLM / other config | put `RF_*` vars in a root `.env` | put `RF_*` vars in a root `.env` |
+
+A root `.env`, if present, is passed straight into the container (`--env-file`). With none, the app runs in **stub mode** — no external LLM, fully functional, content-preserving.
+
+> Windows: if you see *"running scripts is disabled on this system"*, launch once with
+> `powershell -ExecutionPolicy Bypass -File .\deploy.ps1`.
+
+To tear down: `docker rm -f readmint`.
 
 ### Run with Docker
 
