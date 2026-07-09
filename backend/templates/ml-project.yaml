@@ -1,0 +1,14 @@
+name: Machine Learning Project
+description: >-
+  README contract for a machine learning / data science project covering
+  dataset provenance, training, evaluation, and reproducibility.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Dataset, required: true }
+  - { heading: Model Architecture, required: false }
+  - { heading: Training, required: true }
+  - { heading: Evaluation, required: true }
+  - { heading: Results, required: false }
+  - { heading: Reproducing Results, required: true }
+  - { heading: Citation, required: false }
+  - { heading: License, required: false }

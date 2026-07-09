@@ -33,7 +33,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **GitHub-native** — pull a README from `owner/repo@ref` and open a PR (always on a new branch, never the default). Authenticate with your own **Personal Access Token** (bring-your-own, per request) or a deployment-wide GitHub App.
 - **Secret & PII gate** — scans for keys, tokens, internal hostnames, and emails *before* any data reaches the LLM.
 - **Documentation scoring** — deterministic completeness score, before and after.
-- **Template enforcement** — map content into org-standard section structures.
+- **Template enforcement** — map content into org-standard section structures. 16 built-in templates (CLI tool, web app, REST API, mobile app, ML project, npm/Python package, Docker image, GitHub Action, VS Code/browser extension, Helm chart, monorepo, plus the original service/library/Terraform-module) — see [`docs/templates`](docs/templates/README.md) for the full list and worked examples.
 - **Link validation** — flags dead URLs.
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
 - **Change summary** — concise, model-generated "what changed".
@@ -172,6 +172,8 @@ curl -X POST http://localhost:8080/api/github/refine \
 python cli/readmint_cli.py refine README.md --write --check-links
 python cli/readmint_cli.py score README.md --template service
 ```
+
+Run `readmint templates` (or `GET /api/templates`) to list all available template names — see [`docs/templates`](docs/templates/README.md) for what each one expects.
 
 Exit codes: `0` success, `2` secrets detected, `3` content loss detected, `4` transport/API error — safe to wire into CI.
 

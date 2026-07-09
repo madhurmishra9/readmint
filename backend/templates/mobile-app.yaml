@@ -1,0 +1,12 @@
+name: Mobile App
+description: README contract for an iOS/Android mobile application.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Screenshots, required: false }
+  - { heading: Requirements, required: true }
+  - { heading: Installation, required: true }
+  - { heading: Building & Running, required: true }
+  - { heading: Architecture, required: false }
+  - { heading: Testing, required: false }
+  - { heading: Release Process, required: false }
+  - { heading: License, required: false }

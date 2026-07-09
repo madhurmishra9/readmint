@@ -1,0 +1,10 @@
+name: VS Code Extension
+description: README contract for a Visual Studio Code extension marketplace listing.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Features, required: true }
+  - { heading: Requirements, required: false }
+  - { heading: Extension Settings, required: true }
+  - { heading: Known Issues, required: false }
+  - { heading: Release Notes, required: true }
+  - { heading: License, required: false }

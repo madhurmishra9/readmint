@@ -1,0 +1,11 @@
+name: Browser Extension
+description: README contract for a browser extension (Chrome, Firefox, Edge).
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Features, required: false }
+  - { heading: Installation, required: true }
+  - { heading: Permissions, required: true }
+  - { heading: Development, required: true }
+  - { heading: Building & Packaging, required: false }
+  - { heading: Privacy, required: false }
+  - { heading: License, required: false }

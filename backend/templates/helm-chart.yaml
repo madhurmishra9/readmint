@@ -1,0 +1,13 @@
+name: Helm Chart
+description: >-
+  README contract for a Kubernetes Helm chart, following the helm-docs
+  convention (Prerequisites, Install/Uninstall, Values table).
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Prerequisites, required: true }
+  - { heading: Installing the Chart, required: true }
+  - { heading: Uninstalling the Chart, required: false }
+  - { heading: Configuration, required: true }
+  - { heading: Values, required: true }
+  - { heading: Contributing, required: false }
+  - { heading: License, required: false }

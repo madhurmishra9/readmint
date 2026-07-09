@@ -1,0 +1,11 @@
+name: Docker Image
+description: README contract for a published Docker/OCI image.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Supported Tags, required: true }
+  - { heading: Quick Start, required: true }
+  - { heading: Environment Variables, required: true }
+  - { heading: Volumes, required: false }
+  - { heading: Ports, required: false }
+  - { heading: Building the Image, required: false }
+  - { heading: License, required: false }

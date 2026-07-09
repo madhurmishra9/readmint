@@ -1,0 +1,12 @@
+name: Web Application
+description: README contract for a frontend / full-stack web application.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Features, required: false }
+  - { heading: Tech Stack, required: false }
+  - { heading: Getting Started, required: true }
+  - { heading: Environment Variables, required: true }
+  - { heading: Scripts, required: false }
+  - { heading: Deployment, required: true }
+  - { heading: Contributing, required: false }
+  - { heading: License, required: false }

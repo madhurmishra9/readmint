@@ -1,0 +1,13 @@
+name: REST API
+description: >-
+  README contract for a public or consumer-facing REST API, documenting
+  authentication, endpoints, and request/response contracts.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Authentication, required: true }
+  - { heading: Endpoints, required: true }
+  - { heading: Request/Response Examples, required: true }
+  - { heading: Error Handling, required: false }
+  - { heading: Rate Limiting, required: false }
+  - { heading: Versioning, required: false }
+  - { heading: Changelog, required: false }

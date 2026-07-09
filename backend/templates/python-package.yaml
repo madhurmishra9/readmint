@@ -1,0 +1,11 @@
+name: Python Package
+description: README contract for a PyPI-published Python package.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Installation, required: true }
+  - { heading: Quickstart, required: true }
+  - { heading: API Reference, required: false }
+  - { heading: Development, required: false }
+  - { heading: Testing, required: false }
+  - { heading: Contributing, required: false }
+  - { heading: License, required: true }

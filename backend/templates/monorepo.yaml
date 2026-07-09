@@ -1,0 +1,10 @@
+name: Monorepo
+description: README contract for a monorepo housing multiple packages/services.
+sections:
+  - { heading: Overview, required: true }
+  - { heading: Repository Structure, required: true }
+  - { heading: Getting Started, required: true }
+  - { heading: Workspaces, required: true }
+  - { heading: Running Tests, required: false }
+  - { heading: Contributing, required: false }
+  - { heading: License, required: false }
