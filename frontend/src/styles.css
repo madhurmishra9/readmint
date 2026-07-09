@@ -9,6 +9,9 @@ header h1 { margin:0; color:var(--mint); }
 .tagline { color:var(--muted); }
 .layout { display:grid; grid-template-columns: 420px 1fr; gap:1rem; align-items:start; }
 @media (max-width: 900px){ .layout{ grid-template-columns:1fr; } }
+.layout.single { display:block; }
+.view-tabs { margin-left:auto; display:flex; gap:.25rem; }
+.sparkline { color:var(--mint); vertical-align:middle; }
 
 .panel,.card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1rem; margin-bottom:1rem; }
 .card { background:var(--card); }
@@ -61,4 +64,12 @@ pre.summary { white-space:pre-wrap; }
 .exportbar button { background:#0d0f14; color:var(--fg); border:1px solid var(--line); padding:.5rem .8rem; border-radius:8px; cursor:pointer; }
 .exportbar .hint { color:var(--muted); font-size:.8rem; }
 .ack { display:flex; gap:.4rem; color:var(--warn); margin:.5rem 0; align-items:center; }
+.style-findings { list-style:none; padding:0; margin:0; font-size:.85rem; }
+.style-findings li { padding:.2rem 0; border-bottom:1px solid var(--line); }
+.style-findings .loc { color:var(--muted); }
+.section-row { display:block; padding:.35rem 0; border-bottom:1px solid var(--line); font-size:.85rem; }
+.section-row:last-child { border-bottom:none; }
+.section-heading { font-weight:600; }
+.removed-sections { margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--line); }
+pre.section-diff { margin:.3rem 0 0 1.4rem; max-height:200px; font-size:.78rem; }
 code { background:#0d0f14; padding:.05rem .3rem; border-radius:4px; }

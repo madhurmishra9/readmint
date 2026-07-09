@@ -21,6 +21,8 @@ async def refine(
     file: UploadFile | None = File(default=None),
     template: str | None = Form(default=None),
     check_links: bool = Form(default=False),
+    check_style: bool = Form(default=False),
+    check_badges: bool = Form(default=False),
     summary: bool = Form(default=False),
     allow_secrets: bool = Form(default=False),
     redact: bool = Form(default=False),
@@ -41,6 +43,8 @@ async def refine(
         template=tmpl,
         opts={
             "check_links": check_links,
+            "check_style": check_style,
+            "check_badges": check_badges,
             "summary": summary,
             "allow_secrets": allow_secrets,
             "redact": redact,

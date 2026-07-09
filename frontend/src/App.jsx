@@ -1,20 +1,31 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import InputPanel from "./components/InputPanel.jsx";
 import ScoreCard from "./components/ScoreCard.jsx";
 import LossReport from "./components/LossReport.jsx";
 import SecretReport from "./components/SecretReport.jsx";
 import DiffPanel from "./components/DiffPanel.jsx";
+import SectionReview from "./components/SectionReview.jsx";
+import StyleReport from "./components/StyleReport.jsx";
+import ChecksReport from "./components/ChecksReport.jsx";
 import ExportBar from "./components/ExportBar.jsx";
 import BatchPanel from "./components/BatchPanel.jsx";
+import Dashboard from "./components/Dashboard.jsx";
 import { refineText, refineFile, batchZip, githubRefine } from "./api.js";
 
 export default function App() {
+  const [view, setView] = useState("refine"); // refine | dashboard
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [original, setOriginal] = useState("");
   const [result, setResult] = useState(null);
+  const [finalMarkdown, setFinalMarkdown] = useState("");
   const [batch, setBatch] = useState(null);
   const [ack, setAck] = useState(false);
+
+  // Section review reports the merged (possibly partially-reverted) markdown
+  // here; it starts out equal to the fully-refined markdown before any edits.
+  useEffect(() => { setFinalMarkdown(result ? result.markdown : ""); }, [result]);
+  const handleSectionChange = useCallback((md) => setFinalMarkdown(md), []);
 
   async function handleRefine(source, opts) {
     setBusy(true); setError(null); setBatch(null); setResult(null); setAck(false);
@@ -39,6 +50,7 @@ export default function App() {
     setBusy(true); setError(null); setBatch(null); setResult(null); setAck(false); setOriginal("");
     try {
       const res = await githubRefine(gh, opts);
+      setOriginal(res.original || "");
       setResult(res);
     } catch (e) {
       setError(e.message);
@@ -67,8 +79,17 @@ export default function App() {
       <header>
         <h1>🌿 Readmint</h1>
         <span className="tagline">Refine READMEs without losing a byte.</span>
+        <nav className="view-tabs">
+          <button className={view === "refine" ? "tab active" : "tab"} onClick={() => setView("refine")}>Refine</button>
+          <button className={view === "dashboard" ? "tab active" : "tab"} onClick={() => setView("dashboard")}>Dashboard</button>
+        </nav>
       </header>
 
+      {view === "dashboard" ? (
+        <main className="layout single">
+          <Dashboard />
+        </main>
+      ) : (
       <main className="layout">
         <section className="left">
           <InputPanel onRefine={handleRefine} onBatchZip={handleBatchZip} onGithub={handleGithub} busy={busy} />
@@ -109,17 +130,21 @@ export default function App() {
                     <div className="banner warn">PR skipped — {result.pr_skipped_reason}.</div>
                   )}
                   <DiffPanel before={original} after={result.markdown} />
+                  <SectionReview before={original} after={result.markdown} onChange={handleSectionChange} />
+                  <StyleReport style={result.style} />
+                  <ChecksReport badges={result.badges} drift={result.drift} versionSync={result.version_sync} />
                   {hasFindings && (
                     <label className="ack"><input type="checkbox" checked={ack}
                       onChange={(e) => setAck(e.target.checked)} /> I acknowledge the findings above</label>
                   )}
-                  <ExportBar markdown={result.markdown} disabled={exportDisabled} />
+                  <ExportBar markdown={finalMarkdown} disabled={exportDisabled} />
                 </>
               )}
             </>
           )}
         </section>
       </main>
+      )}
     </div>
   );
 }

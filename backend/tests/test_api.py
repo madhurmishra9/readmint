@@ -27,6 +27,26 @@ def test_score_endpoint_no_llm():
     assert 0 <= r.json()["score"] <= 100
 
 
+def test_style_endpoint_no_llm():
+    r = client.post("/api/style", json={"text": "In order to run this, do X.\n"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] >= 1
+    assert any(f["rule"] == "wordy_phrase" for f in body["findings"])
+
+
+def test_refine_with_check_style_attaches_report():
+    r = client.post("/api/refine", data={"text": DOC, "check_style": "true"})
+    assert r.status_code == 200
+    assert r.json()["style"] is not None
+
+
+def test_refine_without_check_style_omits_report():
+    r = client.post("/api/refine", data={"text": DOC})
+    assert r.status_code == 200
+    assert r.json()["style"] is None
+
+
 def test_refine_paste():
     r = client.post("/api/refine", data={"text": DOC})
     assert r.status_code == 200
@@ -92,6 +112,22 @@ def test_history_records_runs():
     assert any(run["action"] == "refine" for run in r.json()["runs"])
 
 
+def test_templates_endpoint_filters_by_doc_type():
+    r = client.get("/api/templates", params={"doc_type": "contributing"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["templates"] == ["contributing"]
+    assert "readme" in body["doc_types"]
+
+
+def test_dashboard_endpoint():
+    client.post("/api/refine", data={"text": DOC})
+    r = client.get("/api/dashboard")
+    assert r.status_code == 200
+    repos = r.json()["repos"]
+    assert any(row["target"] == "pasted.md" for row in repos)
+
+
 def test_llm_info_endpoint():
     # Tests run with RF_LLM_STUB=true ⇒ provider is the stub, no models.
     r = client.get("/api/llm")
@@ -99,6 +135,52 @@ def test_llm_info_endpoint():
     body = r.json()
     assert body["provider"] in {"stub", "cortex", "local"}
     assert "models" in body and "selected" in body
+
+
+@respx.mock
+def test_github_refine_runs_drift_version_sync_and_badge_checks():
+    content = (
+        "# tool\n\nRequires Python 3.9+.\n\n"
+        "![license](https://img.shields.io/badge/license-Apache--2.0-blue)\n\n"
+        "Run `scripts/build.sh` to build.\n"
+    )
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(content.encode()).decode(),
+            "path": "README.md",
+            "sha": "src",
+        })
+    )
+    respx.get("https://api.github.com/repos/o/r/git/trees/HEAD").mock(
+        return_value=httpx.Response(200, json={"tree": [{"path": "README.md", "type": "blob"}]})
+    )
+    respx.get("https://api.github.com/repos/o/r/contents/pyproject.toml").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(b'requires-python = ">=3.11"').decode(),
+        })
+    )
+    for name in ("package.json", "go.mod", "Cargo.toml"):
+        respx.get(f"https://api.github.com/repos/o/r/contents/{name}").mock(
+            return_value=httpx.Response(404, json={"message": "Not Found"})
+        )
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(200, json={"license": {"spdx_id": "MIT"}})
+    )
+    r = client.post(
+        "/api/github/refine",
+        json={
+            "owner": "o", "repo": "r", "open_pr": False, "pat": "ghp_token",
+            "options": {"check_drift": True, "check_version_sync": True, "check_badges": True},
+        },
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "scripts/build.sh" in body["drift"]["missing"]
+    assert body["version_sync"]["mismatches"][0]["manifest_version"] == "3.11"
+    assert body["badges"]["stale"][0]["reason"].startswith("badge says 'Apache-2.0'")
 
 
 def test_github_disabled_returns_503():
@@ -143,6 +225,7 @@ def test_github_refine_with_pat_opens_pr():
     )
     assert r.status_code == 200, r.text
     assert r.json()["pr_url"] == "https://github.com/o/r/pull/42"
+    assert r.json()["original"] == DOC  # frontend needs this for section-level review
 
 
 @respx.mock

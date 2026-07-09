@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from collections import deque
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import structlog
 
@@ -92,3 +92,30 @@ def list_runs(limit: int = 50) -> List[dict]:
         except Exception as e:  # pragma: no cover
             log.warning("history.list_failed", error=str(e))
     return list(_RING)[:limit]
+
+
+def dashboard(limit: int = 500) -> List[dict]:
+    """One row per target (repo/file), worst-scoring first.
+
+    Built entirely from ``list_runs`` — no new storage, no new schema. A
+    target with no ``score_after`` yet (e.g. blocked on secrets) sorts last,
+    not first, so it doesn't masquerade as the worst-scoring repo."""
+    runs = list_runs(limit)  # newest-first
+    by_target: "Dict[str, List[dict]]" = {}
+    for r in runs:
+        by_target.setdefault(r["target"], []).append(r)
+
+    rows = []
+    for target, entries in by_target.items():
+        trend = [e["score_after"] for e in reversed(entries) if e["score_after"] is not None]
+        latest = entries[0]
+        rows.append({
+            "target": target,
+            "runs": len(entries),
+            "latest_score": latest["score_after"],
+            "latest_ts": latest["ts"],
+            "verified": latest["verified"],
+            "trend": trend,
+        })
+    rows.sort(key=lambda r: r["latest_score"] if r["latest_score"] is not None else 101)
+    return rows

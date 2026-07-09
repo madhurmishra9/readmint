@@ -12,6 +12,40 @@ from ..services import github, history
 
 router = APIRouter(prefix="/api/github", tags=["github"])
 
+# Manifests the version-sync check knows how to read (core/version_sync.py).
+_MANIFEST_FILES = ("pyproject.toml", "package.json", "go.mod", "Cargo.toml")
+
+
+def _repo_context(req: GithubRefineRequest, token: str | None) -> dict:
+    """Best-effort repo context for the drift/version-sync/badge checks.
+
+    Each fetch is independent and failure-tolerant: a repo without a
+    package.json, or a transient API error, should never break the refine —
+    it just means that one check reports nothing instead of a false positive.
+    """
+    extra: dict = {}
+    if req.options.check_drift:
+        try:
+            extra["repo_files"] = github.list_repo_files(req.owner, req.repo, req.ref, token=token)
+        except Exception:  # noqa: BLE001
+            extra["repo_files"] = None
+    if req.options.check_version_sync:
+        manifests = {}
+        for name in _MANIFEST_FILES:
+            try:
+                content = github.fetch_file(req.owner, req.repo, name, req.ref, token=token)
+            except Exception:  # noqa: BLE001
+                content = None
+            if content is not None:
+                manifests[name] = content
+        extra["manifests"] = manifests
+    if req.options.check_badges:
+        try:
+            extra["expected_license"] = github.get_license(req.owner, req.repo, token=token)
+        except Exception:  # noqa: BLE001
+            extra["expected_license"] = None
+    return extra
+
 
 @router.post("/refine")
 async def github_refine(req: GithubRefineRequest, user: User = Depends(current_user)):
@@ -32,7 +66,10 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
         raise HTTPException(502, f"could not fetch README: {e}")
 
     tmpl = templates.load(req.options.template) if req.options.template else None
-    result = run_pipeline(content, template=tmpl, opts=req.options.to_opts())
+    opts = req.options.to_opts()
+    opts.update(_repo_context(req, token))
+    result = run_pipeline(content, template=tmpl, opts=opts)
+    result["original"] = content
     target = f"{req.owner}/{req.repo}:{path}"
     history.record(user.email, "github", target, result)
 

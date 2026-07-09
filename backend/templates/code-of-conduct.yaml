@@ -1,0 +1,13 @@
+name: Code of Conduct
+doc_type: code_of_conduct
+description: >-
+  README-style governance contract for a CODE_OF_CONDUCT.md, following the
+  structure of the Contributor Covenant.
+sections:
+  - { heading: Our Pledge, required: true }
+  - { heading: Our Standards, required: true }
+  - { heading: Enforcement Responsibilities, required: false }
+  - { heading: Scope, required: false }
+  - { heading: Reporting, required: true }
+  - { heading: Enforcement, required: false }
+  - { heading: Attribution, required: false }

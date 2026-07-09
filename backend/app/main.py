@@ -14,7 +14,7 @@ from .config import settings
 from .core import templates as templates_mod
 from .cortex_client import cortex
 from .observability import setup_logging, setup_metrics
-from .routers import batch, export, github, refine, score
+from .routers import batch, export, github, refine, score, style, webhooks
 from .services import history
 
 setup_logging()
@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 # routers
-for r in (refine.router, score.router, batch.router, github.router, export.router):
+for r in (refine.router, score.router, style.router, batch.router, github.router, export.router, webhooks.router):
     app.include_router(r)
 
 
@@ -55,8 +55,8 @@ async def healthz():
 
 
 @app.get("/api/templates", tags=["templates"])
-async def list_templates():
-    return {"templates": templates_mod.list_templates()}
+async def list_templates(doc_type: str | None = None):
+    return {"templates": templates_mod.list_templates(doc_type), "doc_types": templates_mod.list_doc_types()}
 
 
 @app.get("/api/llm", tags=["llm"])
@@ -70,6 +70,13 @@ async def llm_info():
 @app.get("/api/history", tags=["history"])
 async def get_history(limit: int = 50):
     return {"runs": history.list_runs(limit)}
+
+
+@app.get("/api/dashboard", tags=["history"])
+async def get_dashboard(limit: int = 500):
+    """One row per target (repo/file), worst-scoring first — an org-wide view
+    of documentation health built from the same audit log as /api/history."""
+    return {"repos": history.dashboard(limit)}
 
 
 # Prometheus /metrics

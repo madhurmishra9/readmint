@@ -33,11 +33,16 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **GitHub-native** — pull a README from `owner/repo@ref` and open a PR (always on a new branch, never the default). Authenticate with your own **Personal Access Token** (bring-your-own, per request) or a deployment-wide GitHub App.
 - **Secret & PII gate** — scans for keys, tokens, internal hostnames, and emails *before* any data reaches the LLM.
 - **Documentation scoring** — deterministic completeness score, before and after.
-- **Template enforcement** — map content into org-standard section structures. 16 built-in templates (CLI tool, web app, REST API, mobile app, ML project, npm/Python package, Docker image, GitHub Action, VS Code/browser extension, Helm chart, monorepo, plus the original service/library/Terraform-module) — see [`docs/templates`](docs/templates/README.md) for the full list and worked examples.
+- **Template enforcement** — map content into org-standard section structures. 19 built-in templates: 16 for `README.md` (CLI tool, web app, REST API, mobile app, ML project, npm/Python package, Docker image, GitHub Action, VS Code/browser extension, Helm chart, monorepo, plus the original service/library/Terraform-module) and 3 companion-doc templates (`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) — see [`docs/templates`](docs/templates/README.md) for the full list and worked examples.
 - **Link validation** — flags dead URLs.
+- **Prose/style lint** — deterministic, advisory checks (wordy phrases, passive voice, overlong sentences, missing alt text) — no LLM call.
+- **Badge / doc-drift / version-sync checks** — flags stale shields.io badges, README references to files no longer in the repo, and version claims that disagree with `pyproject.toml`/`package.json`/`go.mod`/`Cargo.toml`.
+- **Section-level review** — accept or reject the refined wording section-by-section instead of all-or-nothing, and restore anything the refine step dropped.
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
 - **Change summary** — concise, model-generated "what changed".
-- **Multiple surfaces** — web UI, CLI, pre-commit hook, and REST API.
+- **Score-on-push PR comments** — a reusable GitHub Action (`action.yml`) or a webhook (`/api/webhooks/github`) comments the before/after score on every PR push — deterministic, no LLM call.
+- **Org-wide dashboard** — one row per repo/target, worst-scoring first, built from the same audit log as `/api/history`.
+- **Multiple surfaces** — web UI, CLI, pre-commit hook, GitHub Action, and REST API.
 - **Export** — download `.md`, HTML, or PDF, or push to Confluence.
 - **Enterprise-ready** — Azure AD SSO (oauth2-proxy), RBAC, audit log, Prometheus metrics, token-cost caching.
 
@@ -193,6 +198,37 @@ repos:
 
 A ready-made hook is also published in `.pre-commit-hooks.yaml`.
 
+### GitHub Action — score-on-push PR comment
+
+`action.yml` (repo root) is a reusable composite Action: it scores a README
+against a running Readmint server on every push to a PR and comments the
+before/after delta — no LLM call, so it's safe to run on every push and cheap
+enough to gate merges on.
+
+```yaml
+name: Readmint score
+on: pull_request
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: madhurmishra9/readmint@main
+        with:
+          api: https://readmint.internal
+          path: README.md
+          template: service      # optional
+          fail-under: "70"        # optional; 0 disables the gate
+```
+
+Prefer one centrally-run listener instead of a workflow file per repo? Point
+a GitHub webhook (Pull request events) at `POST /api/webhooks/github` on your
+Readmint deployment instead — same deterministic score, same PR comment, no
+Action file needed. Set `RF_GH_WEBHOOK_SECRET` and configure the matching
+secret on the webhook so deliveries are signature-verified.
+
 ### API
 
 ```bash
@@ -206,8 +242,10 @@ curl -X POST http://localhost:8080/api/refine \
 | POST | `/api/batch` · `/api/batch/zip` | Many → results table |
 | POST | `/api/github/refine` | `{owner, repo, ref}` → refined + optional PR |
 | POST | `/api/score` | Score only, no LLM call |
+| POST | `/api/style` | Deterministic prose/style lint, no LLM call |
+| POST | `/api/webhooks/github` | GitHub PR events → score-on-push comment, no LLM call |
 | POST | `/api/export` | HTML / PDF, or push to Confluence |
-| GET | `/api/templates` · `/api/history` | Templates · audit runs |
+| GET | `/api/templates?doc_type=` · `/api/history` · `/api/dashboard` | Templates · audit runs · org-wide score trend |
 | GET | `/metrics` · `/healthz` | Prometheus · liveness/readiness |
 
 ## Deployment
@@ -251,8 +289,14 @@ Build order follows the phased roadmap: the content-preservation guard and the s
 - [x] CLI + pre-commit
 - [x] Export (HTML/PDF/Confluence)
 - [x] SSO, RBAC, audit, observability
-- [ ] Section-level accept/reject in the diff viewer
-- [ ] Validation against a live Cortex endpoint (stub-backed by default today)
+- [x] Section-level accept/reject in the diff viewer
+- [x] Doc-drift, version-sync, and badge-staleness checks
+- [x] Deterministic prose/style lint
+- [x] Org-wide score dashboard
+- [x] Score-on-push PR comments (GitHub Action + webhook)
+- [x] Companion-doc templates (CONTRIBUTING/SECURITY/CODE_OF_CONDUCT)
+- [ ] Validation against a live Cortex endpoint (stub-backed by default today; deferred — needs a real hosted-LLM endpoint to validate against)
+- [ ] GitLab/Bitbucket support (GitHub-only today)
 
 ## License
 

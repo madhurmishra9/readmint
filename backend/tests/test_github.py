@@ -162,3 +162,50 @@ def test_open_pr_with_pat_uses_token_and_branches(monkeypatch):
     assert create_ref.calls.last.request.headers["authorization"] == "Bearer ghp_pat"
     body = create_ref.calls.last.request.content.decode()
     assert "refs/heads/readmint/refine-" in body
+
+
+# --- drift/version-sync/badge support: file tree, single file, license -----
+
+@respx.mock
+def test_fetch_file_returns_content():
+    respx.get("https://api.github.com/repos/o/r/contents/pyproject.toml").mock(
+        return_value=httpx.Response(200, json={"content": base64.b64encode(b"[project]").decode()})
+    )
+    assert github.fetch_file("o", "r", "pyproject.toml", token="ghp_pat") == "[project]"
+
+
+@respx.mock
+def test_fetch_file_returns_none_on_404():
+    respx.get("https://api.github.com/repos/o/r/contents/go.mod").mock(
+        return_value=httpx.Response(404, json={"message": "Not Found"})
+    )
+    assert github.fetch_file("o", "r", "go.mod", token="ghp_pat") is None
+
+
+@respx.mock
+def test_list_repo_files_returns_blob_paths():
+    respx.get("https://api.github.com/repos/o/r/git/trees/HEAD").mock(
+        return_value=httpx.Response(200, json={"tree": [
+            {"path": "README.md", "type": "blob"},
+            {"path": "src", "type": "tree"},
+            {"path": "src/main.py", "type": "blob"},
+        ]})
+    )
+    paths = github.list_repo_files("o", "r", token="ghp_pat")
+    assert paths == ["README.md", "src/main.py"]
+
+
+@respx.mock
+def test_get_license_returns_spdx_id():
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(200, json={"license": {"spdx_id": "MIT"}})
+    )
+    assert github.get_license("o", "r", token="ghp_pat") == "MIT"
+
+
+@respx.mock
+def test_get_license_returns_none_when_unlicensed():
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(404, json={"message": "Not Found"})
+    )
+    assert github.get_license("o", "r", token="ghp_pat") is None

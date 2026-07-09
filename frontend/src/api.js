@@ -1,9 +1,11 @@
 // Thin API client for the Readmint backend.
 
+const REFINE_OPT_KEYS = ["template", "check_links", "check_style", "check_badges", "summary", "allow_secrets", "redact", "model"];
+
 export async function refineText(text, opts = {}) {
   const form = new FormData();
   form.append("text", text);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
+  for (const k of REFINE_OPT_KEYS) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -14,7 +16,7 @@ export async function refineText(text, opts = {}) {
 export async function refineFile(file, opts = {}) {
   const form = new FormData();
   form.append("file", file);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
+  for (const k of REFINE_OPT_KEYS) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -42,6 +44,10 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
     options: {
       template: opts.template || null,
       check_links: !!opts.check_links,
+      check_style: !!opts.check_style,
+      check_badges: !!opts.check_badges,
+      check_drift: !!opts.check_drift,
+      check_version_sync: !!opts.check_version_sync,
       summary: !!opts.summary,
       allow_secrets: !!opts.allow_secrets,
       redact: !!opts.redact,
@@ -63,9 +69,15 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
   return r.json();
 }
 
-export async function listTemplates() {
-  const r = await fetch("/api/templates");
-  return r.ok ? (await r.json()).templates : [];
+export async function listTemplates(docType = "") {
+  const qs = docType ? `?doc_type=${encodeURIComponent(docType)}` : "";
+  const r = await fetch(`/api/templates${qs}`);
+  return r.ok ? r.json() : { templates: [], doc_types: [] };
+}
+
+export async function getDashboard(limit = 500) {
+  const r = await fetch(`/api/dashboard?limit=${limit}`);
+  return r.ok ? (await r.json()).repos : [];
 }
 
 export async function getLlmInfo() {

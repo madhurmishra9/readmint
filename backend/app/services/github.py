@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import base64
 import time
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import httpx
 import jwt
@@ -87,6 +87,38 @@ def _default_branch(c: httpx.Client, owner: str, repo: str, headers: dict) -> st
     return r.json()["default_branch"]
 
 
+def fetch_file(owner: str, repo: str, path: str, ref: str = "HEAD", *, token: Optional[str] = None) -> Optional[str]:
+    """Decoded text content of a repo file, or ``None`` if it doesn't exist (404)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/contents/{path}", params={"ref": ref}, headers=_auth(token))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        return base64.b64decode(r.json()["content"]).decode("utf-8", errors="replace")
+
+
+def list_repo_files(owner: str, repo: str, ref: str = "HEAD", *, token: Optional[str] = None) -> List[str]:
+    """Every file path in the repo tree (used by the doc-drift check)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/git/trees/{ref}", params={"recursive": "1"}, headers=_auth(token))
+        r.raise_for_status()
+        return [item["path"] for item in r.json().get("tree", []) if item.get("type") == "blob"]
+
+
+def get_license(owner: str, repo: str, *, token: Optional[str] = None) -> Optional[str]:
+    """The repo's SPDX license id (e.g. ``MIT``), or ``None`` if unlicensed/unknown."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/license", headers=_auth(token))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        spdx = (r.json().get("license") or {}).get("spdx_id")
+        return spdx if spdx and spdx != "NOASSERTION" else None
+
+
 def open_pr(
     owner: str,
     repo: str,
@@ -133,3 +165,16 @@ def open_pr(
         )
         pr.raise_for_status()
         return pr.json()["html_url"]
+
+
+def create_pr_comment(owner: str, repo: str, number: int, body: str, *, token: Optional[str] = None) -> str:
+    """Post a comment on a PR/issue (used by the score-on-push webhook)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.post(
+            f"/repos/{owner}/{repo}/issues/{number}/comments",
+            headers=_auth(token),
+            json={"body": body},
+        )
+        r.raise_for_status()
+        return r.json()["html_url"]

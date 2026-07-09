@@ -15,6 +15,12 @@ Run `readmint templates` (or `GET /api/templates`) to list the template names
 available at runtime — the list is read from `backend/templates/` at
 startup, so dropping a new `*.yaml` file there is enough to register it.
 
+Every template also carries a `doc_type` (`readme` by default). Pass
+`?doc_type=contributing` to `GET /api/templates` to list only that kind —
+the same section-contract + template-mode-scoring machinery applies to
+companion docs, not just `README.md`. See the [companion doc
+templates](#companion-doc-templates) below.
+
 ## Available templates
 
 | Template file | Name | Use for |
@@ -40,12 +46,28 @@ Each linked page shows the template's required/optional sections and a short
 worked example of a README that satisfies it, so you can see what a passing
 score actually looks like before you point Readmint at your own repo.
 
+## Companion doc templates
+
+The same governance contract works for a repo's other standard docs, not
+just `README.md` — pick a `doc_type` and the file it targets:
+
+| Template file | `doc_type` | Targets |
+|---|---|---|
+| [`contributing.yaml`](contributing.md) | `contributing` | `CONTRIBUTING.md` |
+| [`security.yaml`](security.md) | `security` | `SECURITY.md` |
+| [`code-of-conduct.yaml`](code-of-conduct.md) | `code_of_conduct` | `CODE_OF_CONDUCT.md` |
+
+Point Readmint's CLI/API at the companion file itself (e.g. `readmint refine
+CONTRIBUTING.md --template contributing`) — the pipeline doesn't care what
+the source file is named, only which template you select.
+
 ## Adding your own template
 
 Drop a new `*.yaml` file into `backend/templates/` with the same shape:
 
 ```yaml
 name: My Template
+doc_type: readme  # optional — defaults to "readme"; use e.g. "contributing" for a companion doc
 description: One-line description of what this contract is for.
 sections:
   - { heading: Overview, required: true }
