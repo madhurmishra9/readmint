@@ -9,6 +9,9 @@ header h1 { margin:0; color:var(--mint); }
 .tagline { color:var(--muted); }
 .layout { display:grid; grid-template-columns: 420px 1fr; gap:1rem; align-items:start; }
 @media (max-width: 900px){ .layout{ grid-template-columns:1fr; } }
+.layout.single { display:block; }
+.view-tabs { margin-left:auto; display:flex; gap:.25rem; }
+.sparkline { color:var(--mint); vertical-align:middle; }
 
 .panel,.card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1rem; margin-bottom:1rem; }
 .card { background:var(--card); }

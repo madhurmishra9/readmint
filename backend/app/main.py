@@ -72,6 +72,13 @@ async def get_history(limit: int = 50):
     return {"runs": history.list_runs(limit)}
 
 
+@app.get("/api/dashboard", tags=["history"])
+async def get_dashboard(limit: int = 500):
+    """One row per target (repo/file), worst-scoring first — an org-wide view
+    of documentation health built from the same audit log as /api/history."""
+    return {"repos": history.dashboard(limit)}
+
+
 # Prometheus /metrics
 setup_metrics(app)
 
