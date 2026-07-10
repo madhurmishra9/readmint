@@ -13,6 +13,17 @@ from ..services import github, history
 router = APIRouter(prefix="/api/github", tags=["github"])
 
 
+def _expected_license(req: GithubRefineRequest, token: str | None) -> dict:
+    """Best-effort repo license for the badge-staleness check; failure never
+    breaks the refine — it just means the check has nothing to compare against."""
+    if not req.options.check_badges:
+        return {}
+    try:
+        return {"expected_license": github.get_license(req.owner, req.repo, token=token)}
+    except Exception:  # noqa: BLE001
+        return {"expected_license": None}
+
+
 @router.post("/refine")
 async def github_refine(req: GithubRefineRequest, user: User = Depends(current_user)):
     # A per-request PAT lets a user bring their own token; otherwise fall back to
@@ -32,7 +43,9 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
         raise HTTPException(502, f"could not fetch README: {e}")
 
     tmpl = templates.load(req.options.template) if req.options.template else None
-    result = run_pipeline(content, template=tmpl, opts=req.options.to_opts())
+    opts = req.options.to_opts()
+    opts.update(_expected_license(req, token))
+    result = run_pipeline(content, template=tmpl, opts=opts)
     target = f"{req.owner}/{req.repo}:{path}"
     history.record(user.email, "github", target, result)
 

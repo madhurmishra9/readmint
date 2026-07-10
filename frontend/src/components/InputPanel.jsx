@@ -7,7 +7,7 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
   const [file, setFile] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [llm, setLlm] = useState({ provider: "stub", models: [], selected: "" });
-  const [opts, setOpts] = useState({ template: "", check_links: false, check_style: false, summary: false, redact: false, allow_secrets: false, model: "" });
+  const [opts, setOpts] = useState({ template: "", check_links: false, check_style: false, check_badges: false, summary: false, redact: false, allow_secrets: false, model: "" });
   const [gh, setGh] = useState({ pat: "", owner: "", repo: "", ref: "HEAD", base: "", open_pr: true });
 
   useEffect(() => { listTemplates().then(setTemplates).catch(() => {}); }, []);
@@ -22,6 +22,7 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
       template: opts.template || "",
       check_links: opts.check_links,
       check_style: opts.check_style,
+      check_badges: opts.check_badges,
       summary: opts.summary,
       redact: opts.redact,
       allow_secrets: opts.allow_secrets,
@@ -96,6 +97,8 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
           onChange={(e) => setOpt("check_links", e.target.checked)} /> Check links</label>
         <label><input type="checkbox" checked={opts.check_style}
           onChange={(e) => setOpt("check_style", e.target.checked)} /> Style lint</label>
+        <label><input type="checkbox" checked={opts.check_badges}
+          onChange={(e) => setOpt("check_badges", e.target.checked)} /> Check badges</label>
         <label><input type="checkbox" checked={opts.redact}
           onChange={(e) => setOpt("redact", e.target.checked)} /> Redact secrets</label>
         <label><input type="checkbox" checked={opts.allow_secrets}

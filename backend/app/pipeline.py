@@ -12,7 +12,7 @@ import structlog
 
 from . import prompts
 from .config import settings
-from .core import inventory, scoring, secrets_scan, style, terminology, toc
+from .core import badges, inventory, scoring, secrets_scan, style, terminology, toc
 from .cortex_client import cortex
 from .observability import (LLM_RETRIES, PIPELINE_LATENCY, PIPELINE_RUNS, SECRETS_BLOCKED)
 
@@ -85,6 +85,15 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
     # 9. optional prose/style lint (deterministic, advisory — not part of the score)
     style_report = style.lint(output) if opts.get("check_style") else None
 
+    # 10. optional badge staleness check (no repo access needed; ground truth is optional)
+    badges_report = None
+    if opts.get("check_badges"):
+        badges_report = badges.validate(
+            output,
+            expected_license=opts.get("expected_license"),
+            expected_version=opts.get("expected_version"),
+        )
+
     final = inventory.diff(before_inv, inventory.extract(output))
     verified = not inventory.has_loss(final)
     if retries:
@@ -103,6 +112,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
         "score": {"before": score_before, "after": score_after},
         "links": link_report,
         "style": style_report,
+        "badges": badges_report,
         "summary": change_summary,
         "retries": retries,
         "cached": False,

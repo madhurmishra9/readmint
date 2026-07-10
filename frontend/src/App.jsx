@@ -101,6 +101,12 @@ export default function App() {
                       <ul>{result.links.broken.map((b) => <li key={b.url}><code>{b.url}</code> → {b.status || b.error}</li>)}</ul>
                     </div>
                   )}
+                  {result.badges && (
+                    <div className="card"><h3>Badges</h3>
+                      <p>{result.badges.checked} checked · {result.badges.stale.length} stale</p>
+                      <ul>{result.badges.stale.map((b, i) => <li key={i}><code>{b.label}</code>: {b.reason}</li>)}</ul>
+                    </div>
+                  )}
                   {result.pr_url && (
                     <div className="banner ok">
                       Pull request opened: <a href={result.pr_url} target="_blank" rel="noreferrer">{result.pr_url}</a>

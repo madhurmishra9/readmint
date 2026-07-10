@@ -10,6 +10,7 @@ class RefineOptions(BaseModel):
     template: Optional[str] = None
     check_links: bool = False
     check_style: bool = False
+    check_badges: bool = False
     summary: bool = False
     allow_secrets: bool = False
     redact: bool = False
@@ -19,6 +20,7 @@ class RefineOptions(BaseModel):
         return {
             "check_links": self.check_links,
             "check_style": self.check_style,
+            "check_badges": self.check_badges,
             "summary": self.summary,
             "allow_secrets": self.allow_secrets,
             "redact": self.redact,
@@ -72,6 +74,7 @@ class RefineResult(BaseModel):
     score: Optional[Dict[str, Any]] = None
     links: Optional[Dict[str, Any]] = None
     style: Optional[Dict[str, Any]] = None
+    badges: Optional[Dict[str, Any]] = None
     summary: Optional[str] = None
     retries: Optional[int] = None
     cached: Optional[bool] = None
