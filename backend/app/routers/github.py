@@ -12,6 +12,25 @@ from ..services import github, history
 
 router = APIRouter(prefix="/api/github", tags=["github"])
 
+# Manifests the version-sync check knows how to read (core/version_sync.py).
+_MANIFEST_FILES = ("pyproject.toml", "package.json", "go.mod", "Cargo.toml")
+
+
+def _manifests(req: GithubRefineRequest, token: str | None) -> dict:
+    """Best-effort manifest fetch for the version-sync check; a repo without a
+    given manifest, or a transient API error, just means less to compare against."""
+    if not req.options.check_version_sync:
+        return {}
+    manifests = {}
+    for name in _MANIFEST_FILES:
+        try:
+            content = github.fetch_file(req.owner, req.repo, name, req.ref, token=token)
+        except Exception:  # noqa: BLE001
+            content = None
+        if content is not None:
+            manifests[name] = content
+    return {"manifests": manifests}
+
 
 def _expected_license(req: GithubRefineRequest, token: str | None) -> dict:
     """Best-effort repo license for the badge-staleness check; failure never
@@ -57,6 +76,7 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
     opts = req.options.to_opts()
     opts.update(_expected_license(req, token))
     opts.update(_repo_files(req, token))
+    opts.update(_manifests(req, token))
     result = run_pipeline(content, template=tmpl, opts=opts)
     target = f"{req.owner}/{req.repo}:{path}"
     history.record(user.email, "github", target, result)
