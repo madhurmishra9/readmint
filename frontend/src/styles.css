@@ -64,4 +64,9 @@ pre.summary { white-space:pre-wrap; }
 .style-findings { list-style:none; padding:0; margin:0; font-size:.85rem; }
 .style-findings li { padding:.2rem 0; border-bottom:1px solid var(--line); }
 .style-findings .loc { color:var(--muted); }
+.section-row { display:block; padding:.35rem 0; border-bottom:1px solid var(--line); font-size:.85rem; }
+.section-row:last-child { border-bottom:none; }
+.section-heading { font-weight:600; }
+.removed-sections { margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--line); }
+pre.section-diff { margin:.3rem 0 0 1.4rem; max-height:200px; font-size:.78rem; }
 code { background:#0d0f14; padding:.05rem .3rem; border-radius:4px; }

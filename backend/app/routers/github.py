@@ -78,6 +78,7 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
     opts.update(_repo_files(req, token))
     opts.update(_manifests(req, token))
     result = run_pipeline(content, template=tmpl, opts=opts)
+    result["original"] = content
     target = f"{req.owner}/{req.repo}:{path}"
     history.record(user.email, "github", target, result)
 

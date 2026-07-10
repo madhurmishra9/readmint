@@ -253,6 +253,7 @@ def test_github_refine_with_pat_opens_pr():
     )
     assert r.status_code == 200, r.text
     assert r.json()["pr_url"] == "https://github.com/o/r/pull/42"
+    assert r.json()["original"] == DOC  # frontend needs this for section-level review
 
 
 @respx.mock

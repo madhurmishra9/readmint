@@ -40,6 +40,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **Doc-drift detection** — flags README references (file paths, commands) to files no longer in the repo tree (GitHub-integrated flow only).
 - **Version-sync check** — README version claims (e.g. "Python 3.10+") vs. `pyproject.toml`/`package.json`/`go.mod`/`Cargo.toml` (GitHub-integrated flow only).
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
+- **Section-level review** — accept or reject the refined wording section-by-section instead of all-or-nothing, and restore anything the refine step dropped.
 - **Change summary** — concise, model-generated "what changed".
 - **Multiple surfaces** — web UI, CLI, pre-commit hook, and REST API.
 - **Export** — download `.md`, HTML, or PDF, or push to Confluence.
