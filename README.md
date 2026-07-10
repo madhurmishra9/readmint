@@ -33,7 +33,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **GitHub-native** — pull a README from `owner/repo@ref` and open a PR (always on a new branch, never the default). Authenticate with your own **Personal Access Token** (bring-your-own, per request) or a deployment-wide GitHub App.
 - **Secret & PII gate** — scans for keys, tokens, internal hostnames, and emails *before* any data reaches the LLM.
 - **Documentation scoring** — deterministic completeness score, before and after.
-- **Template enforcement** — map content into org-standard section structures.
+- **Template enforcement** — map content into org-standard section structures, including companion docs (`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`) via a `doc_type` on each template — see [`docs/templates`](docs/templates/README.md).
 - **Link validation** — flags dead URLs.
 - **Prose/style lint** — deterministic, advisory checks (wordy phrases, passive voice, overlong sentences, missing alt text) — no LLM call.
 - **Badge staleness check** — flags static shields.io badges (e.g. a hardcoded license/version) that disagree with the repo's real license; dynamic badges are never flagged since they self-update.
@@ -178,6 +178,7 @@ curl -X POST http://localhost:8080/api/github/refine \
 python cli/readmint_cli.py refine README.md --write --check-links
 python cli/readmint_cli.py score README.md --template service
 python cli/readmint_cli.py lint README.md
+python cli/readmint_cli.py templates --doc-type contributing
 ```
 
 Exit codes: `0` success, `2` secrets detected, `3` content loss detected, `4` transport/API error — safe to wire into CI.
@@ -245,7 +246,7 @@ curl -X POST http://localhost:8080/api/refine \
 | POST | `/api/style` | Deterministic prose/style lint, no LLM call |
 | POST | `/api/webhooks/github` | GitHub PR events → score-on-push comment, no LLM call |
 | POST | `/api/export` | HTML / PDF, or push to Confluence |
-| GET | `/api/templates` · `/api/history` · `/api/dashboard` | Templates · audit runs · org-wide score trend |
+| GET | `/api/templates?doc_type=` · `/api/history` · `/api/dashboard` | Templates · audit runs · org-wide score trend |
 | GET | `/metrics` · `/healthz` | Prometheus · liveness/readiness |
 
 ## Deployment

@@ -21,6 +21,14 @@ def test_healthz():
     assert "addons" in r.json()
 
 
+def test_templates_endpoint_filters_by_doc_type():
+    r = client.get("/api/templates", params={"doc_type": "contributing"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["templates"] == ["contributing"]
+    assert "readme" in body["doc_types"]
+
+
 def test_score_endpoint_no_llm():
     r = client.post("/api/score", json={"text": DOC})
     assert r.status_code == 200

@@ -67,9 +67,10 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
   return r.json();
 }
 
-export async function listTemplates() {
-  const r = await fetch("/api/templates");
-  return r.ok ? (await r.json()).templates : [];
+export async function listTemplates(docType = "") {
+  const qs = docType ? `?doc_type=${encodeURIComponent(docType)}` : "";
+  const r = await fetch(`/api/templates${qs}`);
+  return r.ok ? r.json() : { templates: [], doc_types: [] };
 }
 
 export async function getDashboard(limit = 500) {

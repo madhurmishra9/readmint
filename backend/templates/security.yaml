@@ -1,0 +1,12 @@
+name: Security Policy
+doc_type: security
+description: >-
+  README-style governance contract for a SECURITY.md, following the GitHub
+  security-policy convention (supported versions + private disclosure process).
+sections:
+  - { heading: Supported Versions, required: true }
+  - { heading: Reporting a Vulnerability, required: true }
+  - { heading: Disclosure Policy, required: false }
+  - { heading: Response Timeline, required: false }
+  - { heading: Scope, required: false }
+  - { heading: Contact, required: true }

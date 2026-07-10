@@ -1,0 +1,12 @@
+name: Contributing Guide
+doc_type: contributing
+description: README-style governance contract for a CONTRIBUTING.md.
+sections:
+  - { heading: Getting Started, required: true }
+  - { heading: Development Setup, required: true }
+  - { heading: Branch & Commit Conventions, required: false }
+  - { heading: Running Tests, required: true }
+  - { heading: Submitting a Pull Request, required: true }
+  - { heading: Code Style, required: false }
+  - { heading: Reporting Bugs, required: false }
+  - { heading: Code of Conduct, required: false }
