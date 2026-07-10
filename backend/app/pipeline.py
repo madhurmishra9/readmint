@@ -12,7 +12,7 @@ import structlog
 
 from . import prompts
 from .config import settings
-from .core import inventory, scoring, secrets_scan, terminology, toc
+from .core import inventory, scoring, secrets_scan, style, terminology, toc
 from .cortex_client import cortex
 from .observability import (LLM_RETRIES, PIPELINE_LATENCY, PIPELINE_RUNS, SECRETS_BLOCKED)
 
@@ -82,6 +82,9 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
         from .core import summary
         change_summary = summary.summarize(sanitized, output)
 
+    # 9. optional prose/style lint (deterministic, advisory — not part of the score)
+    style_report = style.lint(output) if opts.get("check_style") else None
+
     final = inventory.diff(before_inv, inventory.extract(output))
     verified = not inventory.has_loss(final)
     if retries:
@@ -99,6 +102,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
         "redacted": do_redact,
         "score": {"before": score_before, "after": score_after},
         "links": link_report,
+        "style": style_report,
         "summary": change_summary,
         "retries": retries,
         "cached": False,

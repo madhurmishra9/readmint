@@ -4,6 +4,7 @@ import ScoreCard from "./components/ScoreCard.jsx";
 import LossReport from "./components/LossReport.jsx";
 import SecretReport from "./components/SecretReport.jsx";
 import DiffPanel from "./components/DiffPanel.jsx";
+import StyleReport from "./components/StyleReport.jsx";
 import ExportBar from "./components/ExportBar.jsx";
 import BatchPanel from "./components/BatchPanel.jsx";
 import { refineText, refineFile, batchZip, githubRefine } from "./api.js";
@@ -109,6 +110,7 @@ export default function App() {
                     <div className="banner warn">PR skipped — {result.pr_skipped_reason}.</div>
                   )}
                   <DiffPanel before={original} after={result.markdown} />
+                  <StyleReport style={result.style} />
                   {hasFindings && (
                     <label className="ack"><input type="checkbox" checked={ack}
                       onChange={(e) => setAck(e.target.checked)} /> I acknowledge the findings above</label>
