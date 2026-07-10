@@ -107,6 +107,12 @@ export default function App() {
                       <ul>{result.badges.stale.map((b, i) => <li key={i}><code>{b.label}</code>: {b.reason}</li>)}</ul>
                     </div>
                   )}
+                  {result.drift && (
+                    <div className="card"><h3>Doc-drift</h3>
+                      <p>{result.drift.checked} reference(s) checked · {result.drift.missing.length} missing</p>
+                      <ul>{result.drift.missing.map((p) => <li key={p}><code>{p}</code> no longer exists in the repo</li>)}</ul>
+                    </div>
+                  )}
                   {result.pr_url && (
                     <div className="banner ok">
                       Pull request opened: <a href={result.pr_url} target="_blank" rel="noreferrer">{result.pr_url}</a>

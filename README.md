@@ -37,6 +37,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **Link validation** — flags dead URLs.
 - **Prose/style lint** — deterministic, advisory checks (wordy phrases, passive voice, overlong sentences, missing alt text) — no LLM call.
 - **Badge staleness check** — flags static shields.io badges (e.g. a hardcoded license/version) that disagree with the repo's real license; dynamic badges are never flagged since they self-update.
+- **Doc-drift detection** — flags README references (file paths, commands) to files no longer in the repo tree (GitHub-integrated flow only).
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
 - **Change summary** — concise, model-generated "what changed".
 - **Multiple surfaces** — web UI, CLI, pre-commit hook, and REST API.

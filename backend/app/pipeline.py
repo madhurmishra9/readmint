@@ -12,7 +12,7 @@ import structlog
 
 from . import prompts
 from .config import settings
-from .core import badges, inventory, scoring, secrets_scan, style, terminology, toc
+from .core import badges, drift, inventory, scoring, secrets_scan, style, terminology, toc
 from .cortex_client import cortex
 from .observability import (LLM_RETRIES, PIPELINE_LATENCY, PIPELINE_RUNS, SECRETS_BLOCKED)
 
@@ -94,6 +94,12 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
             expected_version=opts.get("expected_version"),
         )
 
+    # 11. optional doc-drift check — only meaningful with repo context (populated
+    # by the GitHub-integrated flow; absent for a bare paste/upload)
+    drift_report = None
+    if opts.get("check_drift") and opts.get("repo_files") is not None:
+        drift_report = drift.check(output, opts["repo_files"])
+
     final = inventory.diff(before_inv, inventory.extract(output))
     verified = not inventory.has_loss(final)
     if retries:
@@ -113,6 +119,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
         "links": link_report,
         "style": style_report,
         "badges": badges_report,
+        "drift": drift_report,
         "summary": change_summary,
         "retries": retries,
         "cached": False,

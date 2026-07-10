@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import base64
 import time
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import httpx
 import jwt
@@ -145,3 +145,12 @@ def get_license(owner: str, repo: str, *, token: Optional[str] = None) -> Option
         r.raise_for_status()
         spdx = (r.json().get("license") or {}).get("spdx_id")
         return spdx if spdx and spdx != "NOASSERTION" else None
+
+
+def list_repo_files(owner: str, repo: str, ref: str = "HEAD", *, token: Optional[str] = None) -> List[str]:
+    """Every file path in the repo tree (used by the doc-drift check)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/git/trees/{ref}", params={"recursive": "1"}, headers=_auth(token))
+        r.raise_for_status()
+        return [item["path"] for item in r.json().get("tree", []) if item.get("type") == "blob"]

@@ -135,6 +135,29 @@ def test_llm_info_endpoint():
     assert "models" in body and "selected" in body
 
 
+@respx.mock
+def test_github_refine_check_drift_flags_missing_file():
+    content = "# tool\n\nRun `scripts/build.sh` to build.\n"
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(content.encode()).decode(), "path": "README.md", "sha": "s",
+        })
+    )
+    respx.get("https://api.github.com/repos/o/r/git/trees/HEAD").mock(
+        return_value=httpx.Response(200, json={"tree": [{"path": "README.md", "type": "blob"}]})
+    )
+    r = client.post(
+        "/api/github/refine",
+        json={"owner": "o", "repo": "r", "open_pr": False, "pat": "ghp_token",
+              "options": {"check_drift": True}},
+    )
+    assert r.status_code == 200, r.text
+    assert "scripts/build.sh" in r.json()["drift"]["missing"]
+
+
 def test_github_disabled_returns_503():
     r = client.post("/api/github/refine", json={"owner": "o", "repo": "r"})
     assert r.status_code == 503
