@@ -165,3 +165,16 @@ def list_repo_files(owner: str, repo: str, ref: str = "HEAD", *, token: Optional
         r = c.get(f"/repos/{owner}/{repo}/git/trees/{ref}", params={"recursive": "1"}, headers=_auth(token))
         r.raise_for_status()
         return [item["path"] for item in r.json().get("tree", []) if item.get("type") == "blob"]
+
+
+def create_pr_comment(owner: str, repo: str, number: int, body: str, *, token: Optional[str] = None) -> str:
+    """Post a comment on a PR/issue (used by the score-on-push webhook)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.post(
+            f"/repos/{owner}/{repo}/issues/{number}/comments",
+            headers=_auth(token),
+            json={"body": body},
+        )
+        r.raise_for_status()
+        return r.json()["html_url"]

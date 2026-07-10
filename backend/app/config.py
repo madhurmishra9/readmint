@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     gh_installation_id: str = ""
     gh_private_key: str = ""
     gh_api_base: str = "https://api.github.com"
+    # HMAC secret for POST /api/webhooks/github (score-on-push PR comment).
+    # Empty ⇒ signature check is skipped (fine for local/dev, not production).
+    gh_webhook_secret: str = ""
 
     # --- Cache (optional) ---
     redis_url: Optional[str] = None

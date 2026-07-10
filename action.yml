@@ -1,0 +1,92 @@
+name: "Readmint Score Comment"
+description: >-
+  Score a README (or any templated doc) with a running Readmint server and
+  comment the before/after score delta on the pull request. Deterministic —
+  calls only /api/score, never the LLM, so it's safe to run on every push.
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  api:
+    description: "Base URL of a running Readmint server, e.g. https://readmint.internal"
+    required: true
+  path:
+    description: "Path to the file to score"
+    default: "README.md"
+  template:
+    description: "Org template name (optional — omit for the generic rubric)"
+    required: false
+    default: ""
+  fail-under:
+    description: "Fail the check if the score drops below this threshold (0 disables)"
+    required: false
+    default: "0"
+  github-token:
+    description: "Token used to post/update the PR comment"
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        API="${{ inputs.api }}"
+        PATH_ARG="${{ inputs.path }}"
+        TEMPLATE="${{ inputs.template }}"
+        FAIL_UNDER="${{ inputs.fail-under }}"
+
+        score_of() {
+          # $1: file content (may be empty for "doesn't exist at base")
+          if [ -z "$1" ]; then echo ""; return; fi
+          payload=$(jq -n --arg text "$1" --arg template "$TEMPLATE" \
+            '{text: $text} + (if $template != "" then {template: $template} else {} end)')
+          curl -sf -X POST "$API/api/score" -H "Content-Type: application/json" -d "$payload" | jq -r '.score'
+        }
+
+        HEAD_CONTENT=$(cat "$PATH_ARG" 2>/dev/null || echo "")
+        BASE_CONTENT=""
+        if [ -n "${GITHUB_BASE_REF:-}" ]; then
+          git fetch --depth=1 origin "$GITHUB_BASE_REF" > /dev/null 2>&1 || true
+          BASE_CONTENT=$(git show "origin/${GITHUB_BASE_REF}:${PATH_ARG}" 2>/dev/null || echo "")
+        fi
+
+        HEAD_SCORE=$(score_of "$HEAD_CONTENT")
+        BASE_SCORE=$(score_of "$BASE_CONTENT")
+
+        if [ -z "$HEAD_SCORE" ]; then
+          echo "::error::could not score $PATH_ARG (missing, or $API unreachable)"
+          exit 1
+        fi
+
+        if [ -n "$BASE_SCORE" ]; then
+          DELTA=$((HEAD_SCORE - BASE_SCORE))
+          SIGN=""; [ "$DELTA" -ge 0 ] && SIGN="+"
+          BODY="**Readmint score** for \`$PATH_ARG\`: $BASE_SCORE → $HEAD_SCORE (${SIGN}${DELTA})"
+        else
+          BODY="**Readmint score** for \`$PATH_ARG\`: $HEAD_SCORE/100 (no base version to diff against)"
+        fi
+        echo "$BODY"
+
+        if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${PR_NUMBER:-}" ]; then
+          MARKER="<!-- readmint-score-comment -->"
+          COMMENTS_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments"
+          EXISTING=$(curl -sf -H "Authorization: Bearer ${GITHUB_TOKEN}" "$COMMENTS_URL" \
+            | jq -r --arg m "$MARKER" '.[] | select(.body | contains($m)) | .id' | head -1)
+          PAYLOAD=$(jq -n --arg body "$MARKER"$'\n'"$BODY" '{body: $body}')
+          if [ -n "$EXISTING" ]; then
+            curl -sf -X PATCH -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/comments/${EXISTING}" -d "$PAYLOAD" > /dev/null
+          else
+            curl -sf -X POST -H "Authorization: Bearer ${GITHUB_TOKEN}" "$COMMENTS_URL" -d "$PAYLOAD" > /dev/null
+          fi
+        fi
+
+        if [ "$FAIL_UNDER" != "0" ] && [ "$HEAD_SCORE" -lt "$FAIL_UNDER" ]; then
+          echo "::error::score $HEAD_SCORE is below the fail-under threshold of $FAIL_UNDER"
+          exit 1
+        fi
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}

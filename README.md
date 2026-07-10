@@ -198,6 +198,37 @@ repos:
 
 A ready-made hook is also published in `.pre-commit-hooks.yaml`.
 
+### GitHub Action — score-on-push PR comment
+
+`action.yml` (repo root) is a reusable composite Action: it scores a README
+against a running Readmint server on every push to a PR and comments the
+before/after delta — no LLM call, so it's safe to run on every push and cheap
+enough to gate merges on.
+
+```yaml
+name: Readmint score
+on: pull_request
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: madhurmishra9/readmint@main
+        with:
+          api: https://readmint.internal
+          path: README.md
+          template: service      # optional
+          fail-under: "70"        # optional; 0 disables the gate
+```
+
+Prefer one centrally-run listener instead of a workflow file per repo? Point
+a GitHub webhook (Pull request events) at `POST /api/webhooks/github` on your
+Readmint deployment instead — same deterministic score, same PR comment, no
+Action file needed. Set `RF_GH_WEBHOOK_SECRET` and configure the matching
+secret on the webhook so deliveries are signature-verified.
+
 ### API
 
 ```bash
@@ -212,6 +243,7 @@ curl -X POST http://localhost:8080/api/refine \
 | POST | `/api/github/refine` | `{owner, repo, ref}` → refined + optional PR |
 | POST | `/api/score` | Score only, no LLM call |
 | POST | `/api/style` | Deterministic prose/style lint, no LLM call |
+| POST | `/api/webhooks/github` | GitHub PR events → score-on-push comment, no LLM call |
 | POST | `/api/export` | HTML / PDF, or push to Confluence |
 | GET | `/api/templates` · `/api/history` · `/api/dashboard` | Templates · audit runs · org-wide score trend |
 | GET | `/metrics` · `/healthz` | Prometheus · liveness/readiness |
