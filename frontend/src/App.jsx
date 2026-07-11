@@ -113,6 +113,12 @@ export default function App() {
                       <ul>{result.drift.missing.map((p) => <li key={p}><code>{p}</code> no longer exists in the repo</li>)}</ul>
                     </div>
                   )}
+                  {result.version_sync && (
+                    <div className="card"><h3>Version sync</h3>
+                      <p>{result.version_sync.checked} claim(s) checked · {result.version_sync.mismatches.length} mismatched</p>
+                      <ul>{result.version_sync.mismatches.map((m, i) => <li key={i}>{m.reason}</li>)}</ul>
+                    </div>
+                  )}
                   {result.pr_url && (
                     <div className="banner ok">
                       Pull request opened: <a href={result.pr_url} target="_blank" rel="noreferrer">{result.pr_url}</a>

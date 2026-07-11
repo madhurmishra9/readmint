@@ -45,6 +45,7 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
       check_style: !!opts.check_style,
       check_badges: !!opts.check_badges,
       check_drift: !!opts.check_drift,
+      check_version_sync: !!opts.check_version_sync,
       summary: !!opts.summary,
       allow_secrets: !!opts.allow_secrets,
       redact: !!opts.redact,

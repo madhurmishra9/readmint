@@ -87,6 +87,17 @@ def _default_branch(c: httpx.Client, owner: str, repo: str, headers: dict) -> st
     return r.json()["default_branch"]
 
 
+def fetch_file(owner: str, repo: str, path: str, ref: str = "HEAD", *, token: Optional[str] = None) -> Optional[str]:
+    """Decoded text content of a repo file, or ``None`` if it doesn't exist (404)."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/contents/{path}", params={"ref": ref}, headers=_auth(token))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        return base64.b64decode(r.json()["content"]).decode("utf-8", errors="replace")
+
+
 def open_pr(
     owner: str,
     repo: str,

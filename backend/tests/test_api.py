@@ -158,6 +158,35 @@ def test_github_refine_check_drift_flags_missing_file():
     assert "scripts/build.sh" in r.json()["drift"]["missing"]
 
 
+@respx.mock
+def test_github_refine_check_version_sync_flags_mismatch():
+    content = "# tool\n\nRequires Python 3.9+.\n"
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(content.encode()).decode(), "path": "README.md", "sha": "s",
+        })
+    )
+    respx.get("https://api.github.com/repos/o/r/contents/pyproject.toml").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(b'requires-python = ">=3.11"').decode(),
+        })
+    )
+    for name in ("package.json", "go.mod", "Cargo.toml"):
+        respx.get(f"https://api.github.com/repos/o/r/contents/{name}").mock(
+            return_value=httpx.Response(404, json={"message": "Not Found"})
+        )
+    r = client.post(
+        "/api/github/refine",
+        json={"owner": "o", "repo": "r", "open_pr": False, "pat": "ghp_token",
+              "options": {"check_version_sync": True}},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["version_sync"]["mismatches"][0]["manifest_version"] == "3.11"
+
+
 def test_github_disabled_returns_503():
     r = client.post("/api/github/refine", json={"owner": "o", "repo": "r"})
     assert r.status_code == 503

@@ -191,3 +191,19 @@ def test_list_repo_files_returns_blob_paths():
     )
     paths = github.list_repo_files("o", "r", token="ghp_pat")
     assert paths == ["README.md", "src/main.py"]
+
+
+@respx.mock
+def test_fetch_file_returns_content():
+    respx.get("https://api.github.com/repos/o/r/contents/pyproject.toml").mock(
+        return_value=httpx.Response(200, json={"content": base64.b64encode(b"[project]").decode()})
+    )
+    assert github.fetch_file("o", "r", "pyproject.toml", token="ghp_pat") == "[project]"
+
+
+@respx.mock
+def test_fetch_file_returns_none_on_404():
+    respx.get("https://api.github.com/repos/o/r/contents/go.mod").mock(
+        return_value=httpx.Response(404, json={"message": "Not Found"})
+    )
+    assert github.fetch_file("o", "r", "go.mod", token="ghp_pat") is None

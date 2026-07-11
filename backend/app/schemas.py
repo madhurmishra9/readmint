@@ -14,6 +14,9 @@ class RefineOptions(BaseModel):
     # Needs the repo's real file tree, so it only takes effect on
     # /api/github/refine, which supplies that context.
     check_drift: bool = False
+    # Needs manifest content, so it only takes effect on /api/github/refine,
+    # which fetches pyproject.toml/package.json/go.mod/Cargo.toml.
+    check_version_sync: bool = False
     summary: bool = False
     allow_secrets: bool = False
     redact: bool = False
@@ -25,6 +28,7 @@ class RefineOptions(BaseModel):
             "check_style": self.check_style,
             "check_badges": self.check_badges,
             "check_drift": self.check_drift,
+            "check_version_sync": self.check_version_sync,
             "summary": self.summary,
             "allow_secrets": self.allow_secrets,
             "redact": self.redact,
@@ -80,6 +84,7 @@ class RefineResult(BaseModel):
     style: Optional[Dict[str, Any]] = None
     badges: Optional[Dict[str, Any]] = None
     drift: Optional[Dict[str, Any]] = None
+    version_sync: Optional[Dict[str, Any]] = None
     summary: Optional[str] = None
     retries: Optional[int] = None
     cached: Optional[bool] = None
