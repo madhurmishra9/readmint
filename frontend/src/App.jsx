@@ -8,9 +8,11 @@ import StyleReport from "./components/StyleReport.jsx";
 import SectionReview from "./components/SectionReview.jsx";
 import ExportBar from "./components/ExportBar.jsx";
 import BatchPanel from "./components/BatchPanel.jsx";
+import Dashboard from "./components/Dashboard.jsx";
 import { refineText, refineFile, batchZip, githubRefine } from "./api.js";
 
 export default function App() {
+  const [view, setView] = useState("refine"); // refine | dashboard
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [original, setOriginal] = useState("");
@@ -76,8 +78,17 @@ export default function App() {
       <header>
         <h1>🌿 Readmint</h1>
         <span className="tagline">Refine READMEs without losing a byte.</span>
+        <nav className="view-tabs">
+          <button className={view === "refine" ? "tab active" : "tab"} onClick={() => setView("refine")}>Refine</button>
+          <button className={view === "dashboard" ? "tab active" : "tab"} onClick={() => setView("dashboard")}>Dashboard</button>
+        </nav>
       </header>
 
+      {view === "dashboard" ? (
+        <main className="layout single">
+          <Dashboard />
+        </main>
+      ) : (
       <main className="layout">
         <section className="left">
           <InputPanel onRefine={handleRefine} onBatchZip={handleBatchZip} onGithub={handleGithub} busy={busy} />
@@ -149,6 +160,7 @@ export default function App() {
           )}
         </section>
       </main>
+      )}
     </div>
   );
 }

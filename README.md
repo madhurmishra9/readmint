@@ -42,6 +42,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
 - **Section-level review** — accept or reject the refined wording section-by-section instead of all-or-nothing, and restore anything the refine step dropped.
 - **Change summary** — concise, model-generated "what changed".
+- **Org-wide dashboard** — one row per repo/target, worst-scoring first, built from the same audit log as `/api/history`.
 - **Multiple surfaces** — web UI, CLI, pre-commit hook, and REST API.
 - **Export** — download `.md`, HTML, or PDF, or push to Confluence.
 - **Enterprise-ready** — Azure AD SSO (oauth2-proxy), RBAC, audit log, Prometheus metrics, token-cost caching.
@@ -212,7 +213,7 @@ curl -X POST http://localhost:8080/api/refine \
 | POST | `/api/score` | Score only, no LLM call |
 | POST | `/api/style` | Deterministic prose/style lint, no LLM call |
 | POST | `/api/export` | HTML / PDF, or push to Confluence |
-| GET | `/api/templates` · `/api/history` | Templates · audit runs |
+| GET | `/api/templates` · `/api/history` · `/api/dashboard` | Templates · audit runs · org-wide score trend |
 | GET | `/metrics` · `/healthz` | Prometheus · liveness/readiness |
 
 ## Deployment

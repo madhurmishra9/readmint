@@ -126,6 +126,14 @@ def test_history_records_runs():
     assert any(run["action"] == "refine" for run in r.json()["runs"])
 
 
+def test_dashboard_endpoint():
+    client.post("/api/refine", data={"text": DOC})
+    r = client.get("/api/dashboard")
+    assert r.status_code == 200
+    repos = r.json()["repos"]
+    assert any(row["target"] == "pasted.md" for row in repos)
+
+
 def test_llm_info_endpoint():
     # Tests run with RF_LLM_STUB=true ⇒ provider is the stub, no models.
     r = client.get("/api/llm")

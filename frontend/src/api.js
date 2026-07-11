@@ -72,6 +72,11 @@ export async function listTemplates() {
   return r.ok ? (await r.json()).templates : [];
 }
 
+export async function getDashboard(limit = 500) {
+  const r = await fetch(`/api/dashboard?limit=${limit}`);
+  return r.ok ? (await r.json()).repos : [];
+}
+
 export async function getLlmInfo() {
   const r = await fetch("/api/llm");
   return r.ok ? r.json() : { provider: "stub", models: [], selected: "" };
