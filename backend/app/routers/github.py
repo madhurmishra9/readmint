@@ -24,6 +24,17 @@ def _expected_license(req: GithubRefineRequest, token: str | None) -> dict:
         return {"expected_license": None}
 
 
+def _repo_files(req: GithubRefineRequest, token: str | None) -> dict:
+    """Best-effort file tree for the doc-drift check; failure never breaks the
+    refine — it just means the check reports nothing instead of a false positive."""
+    if not req.options.check_drift:
+        return {}
+    try:
+        return {"repo_files": github.list_repo_files(req.owner, req.repo, req.ref, token=token)}
+    except Exception:  # noqa: BLE001
+        return {"repo_files": None}
+
+
 @router.post("/refine")
 async def github_refine(req: GithubRefineRequest, user: User = Depends(current_user)):
     # A per-request PAT lets a user bring their own token; otherwise fall back to
@@ -45,6 +56,7 @@ async def github_refine(req: GithubRefineRequest, user: User = Depends(current_u
     tmpl = templates.load(req.options.template) if req.options.template else None
     opts = req.options.to_opts()
     opts.update(_expected_license(req, token))
+    opts.update(_repo_files(req, token))
     result = run_pipeline(content, template=tmpl, opts=opts)
     target = f"{req.owner}/{req.repo}:{path}"
     history.record(user.email, "github", target, result)

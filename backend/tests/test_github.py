@@ -178,3 +178,16 @@ def test_get_license_returns_none_when_unlicensed():
         return_value=httpx.Response(404, json={"message": "Not Found"})
     )
     assert github.get_license("o", "r", token="ghp_pat") is None
+
+
+@respx.mock
+def test_list_repo_files_returns_blob_paths():
+    respx.get("https://api.github.com/repos/o/r/git/trees/HEAD").mock(
+        return_value=httpx.Response(200, json={"tree": [
+            {"path": "README.md", "type": "blob"},
+            {"path": "src", "type": "tree"},
+            {"path": "src/main.py", "type": "blob"},
+        ]})
+    )
+    paths = github.list_repo_files("o", "r", token="ghp_pat")
+    assert paths == ["README.md", "src/main.py"]
