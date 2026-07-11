@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import InputPanel from "./components/InputPanel.jsx";
 import ScoreCard from "./components/ScoreCard.jsx";
 import LossReport from "./components/LossReport.jsx";
 import SecretReport from "./components/SecretReport.jsx";
 import DiffPanel from "./components/DiffPanel.jsx";
 import StyleReport from "./components/StyleReport.jsx";
+import SectionReview from "./components/SectionReview.jsx";
 import ExportBar from "./components/ExportBar.jsx";
 import BatchPanel from "./components/BatchPanel.jsx";
 import { refineText, refineFile, batchZip, githubRefine } from "./api.js";
@@ -14,8 +15,14 @@ export default function App() {
   const [error, setError] = useState(null);
   const [original, setOriginal] = useState("");
   const [result, setResult] = useState(null);
+  const [finalMarkdown, setFinalMarkdown] = useState("");
   const [batch, setBatch] = useState(null);
   const [ack, setAck] = useState(false);
+
+  // Section review reports the merged (possibly partially-reverted) markdown
+  // here; it starts out equal to the fully-refined markdown before any edits.
+  useEffect(() => { setFinalMarkdown(result ? result.markdown : ""); }, [result]);
+  const handleSectionChange = useCallback((md) => setFinalMarkdown(md), []);
 
   async function handleRefine(source, opts) {
     setBusy(true); setError(null); setBatch(null); setResult(null); setAck(false);
@@ -40,6 +47,7 @@ export default function App() {
     setBusy(true); setError(null); setBatch(null); setResult(null); setAck(false); setOriginal("");
     try {
       const res = await githubRefine(gh, opts);
+      setOriginal(res.original || "");
       setResult(res);
     } catch (e) {
       setError(e.message);
@@ -128,12 +136,13 @@ export default function App() {
                     <div className="banner warn">PR skipped — {result.pr_skipped_reason}.</div>
                   )}
                   <DiffPanel before={original} after={result.markdown} />
+                  <SectionReview before={original} after={result.markdown} onChange={handleSectionChange} />
                   <StyleReport style={result.style} />
                   {hasFindings && (
                     <label className="ack"><input type="checkbox" checked={ack}
                       onChange={(e) => setAck(e.target.checked)} /> I acknowledge the findings above</label>
                   )}
-                  <ExportBar markdown={result.markdown} disabled={exportDisabled} />
+                  <ExportBar markdown={finalMarkdown} disabled={exportDisabled} />
                 </>
               )}
             </>

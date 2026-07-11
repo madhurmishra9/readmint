@@ -23,9 +23,18 @@ def _template_name(template: Optional[dict]) -> str:
     return (template or {}).get("name", "") if template else ""
 
 
+def _normalize_newlines(text: str) -> str:
+    """CRLF/CR -> LF. Browser multipart form submission (and Windows-authored
+    files) routinely carry CRLF; every downstream regex — heading detection,
+    ToC anchors, the JS section splitter — assumes LF, so normalise once here
+    rather than let \\r leak into every line and corrupt line-exact matching."""
+    return (text or "").replace("\r\n", "\n").replace("\r", "\n")
+
+
 @PIPELINE_LATENCY.time()
 def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Optional[dict] = None) -> dict:
     opts = opts or {}
+    document = _normalize_newlines(document)
 
     # 0. cache (optional) — keyed on sanitised intent: document + template
     use_cache = opts.get("use_cache", True) and settings.cache_enabled
@@ -55,7 +64,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
     # 4. LLM refine
     model = opts.get("model") or None
     system = prompts.system_for(template)
-    output = cortex.complete(system, prompts.USER.format(document=sanitized), model=model)
+    output = _normalize_newlines(cortex.complete(system, prompts.USER.format(document=sanitized), model=model))
 
     # 5. verify / retry on any content loss
     retries = 0
@@ -63,7 +72,7 @@ def run_pipeline(document: str, *, template: Optional[dict] = None, opts: Option
     while inventory.has_loss(report) and retries < settings.max_retries:
         retries += 1
         log.info("pipeline.repair_retry", attempt=retries)
-        output = cortex.complete(system, prompts.repair(report, output), model=model)
+        output = _normalize_newlines(cortex.complete(system, prompts.repair(report, output), model=model))
         report = inventory.diff(before_inv, inventory.extract(output))
 
     # 6. deterministic ToC + anchors

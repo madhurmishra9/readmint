@@ -25,6 +25,14 @@ def test_happy_path_no_loss():
     assert "before" in res["score"] and "after" in res["score"]
 
 
+def test_crlf_input_normalised_to_lf():
+    """Browser multipart form submission (and Windows-authored files) send
+    CRLF; the diff viewer, section splitter, and heading regexes all assume
+    LF, so a stray \\r must never survive into the pipeline's output."""
+    res = run_pipeline(DOC.replace("\n", "\r\n"))
+    assert "\r" not in res["markdown"]
+
+
 def test_blocked_on_high_severity_secret():
     res = run_pipeline(DOC + "\nAKIAIOSFODNN7EXAMPLE\n")
     assert res["status"] == "blocked"
