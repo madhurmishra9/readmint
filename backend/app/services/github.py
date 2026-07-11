@@ -133,3 +133,15 @@ def open_pr(
         )
         pr.raise_for_status()
         return pr.json()["html_url"]
+
+
+def get_license(owner: str, repo: str, *, token: Optional[str] = None) -> Optional[str]:
+    """The repo's SPDX license id (e.g. ``MIT``), or ``None`` if unlicensed/unknown."""
+    token = _resolve_token(token)
+    with _client() as c:
+        r = c.get(f"/repos/{owner}/{repo}/license", headers=_auth(token))
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        spdx = (r.json().get("license") or {}).get("spdx_id")
+        return spdx if spdx and spdx != "NOASSERTION" else None

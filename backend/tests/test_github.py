@@ -162,3 +162,19 @@ def test_open_pr_with_pat_uses_token_and_branches(monkeypatch):
     assert create_ref.calls.last.request.headers["authorization"] == "Bearer ghp_pat"
     body = create_ref.calls.last.request.content.decode()
     assert "refs/heads/readmint/refine-" in body
+
+
+@respx.mock
+def test_get_license_returns_spdx_id():
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(200, json={"license": {"spdx_id": "MIT"}})
+    )
+    assert github.get_license("o", "r", token="ghp_pat") == "MIT"
+
+
+@respx.mock
+def test_get_license_returns_none_when_unlicensed():
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(404, json={"message": "Not Found"})
+    )
+    assert github.get_license("o", "r", token="ghp_pat") is None

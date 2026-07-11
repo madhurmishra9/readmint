@@ -47,6 +47,20 @@ def test_refine_without_check_style_omits_report():
     assert r.json()["style"] is None
 
 
+def test_refine_with_check_badges_attaches_report():
+    md = "# tool\n\n![license](https://img.shields.io/badge/license-MIT-blue)\n"
+    r = client.post("/api/refine", data={"text": md, "check_badges": "true"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["badges"]["checked"] == 1
+
+
+def test_refine_without_check_badges_omits_report():
+    r = client.post("/api/refine", data={"text": DOC})
+    assert r.status_code == 200
+    assert r.json()["badges"] is None
+
+
 def test_refine_paste():
     r = client.post("/api/refine", data={"text": DOC})
     assert r.status_code == 200
@@ -124,6 +138,30 @@ def test_llm_info_endpoint():
 def test_github_disabled_returns_503():
     r = client.post("/api/github/refine", json={"owner": "o", "repo": "r"})
     assert r.status_code == 503
+
+
+@respx.mock
+def test_github_refine_check_badges_uses_repo_license():
+    content = "# tool\n\n![license](https://img.shields.io/badge/license-Apache--2.0-blue)\n"
+    respx.get("https://api.github.com/user").mock(
+        return_value=httpx.Response(200, json={"login": "octocat"})
+    )
+    respx.get("https://api.github.com/repos/o/r/readme").mock(
+        return_value=httpx.Response(200, json={
+            "content": base64.b64encode(content.encode()).decode(), "path": "README.md", "sha": "s",
+        })
+    )
+    respx.get("https://api.github.com/repos/o/r/license").mock(
+        return_value=httpx.Response(200, json={"license": {"spdx_id": "MIT"}})
+    )
+    r = client.post(
+        "/api/github/refine",
+        json={"owner": "o", "repo": "r", "open_pr": False, "pat": "ghp_token",
+              "options": {"check_badges": True}},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["badges"]["stale"][0]["reason"].startswith("badge says 'Apache-2.0'")
 
 
 @respx.mock
