@@ -14,7 +14,7 @@ from .config import settings
 from .core import templates as templates_mod
 from .cortex_client import cortex
 from .observability import setup_logging, setup_metrics
-from .routers import batch, export, github, refine, score, style
+from .routers import batch, export, github, refine, score, style, webhooks
 from .services import history
 
 setup_logging()
@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 # routers
-for r in (refine.router, score.router, style.router, batch.router, github.router, export.router):
+for r in (refine.router, score.router, style.router, batch.router, github.router, export.router, webhooks.router):
     app.include_router(r)
 
 
