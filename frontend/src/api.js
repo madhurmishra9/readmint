@@ -3,7 +3,7 @@
 export async function refineText(text, opts = {}) {
   const form = new FormData();
   form.append("text", text);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
+  for (const k of ["template", "check_links", "check_style", "summary", "allow_secrets", "redact", "model"]) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -14,7 +14,7 @@ export async function refineText(text, opts = {}) {
 export async function refineFile(file, opts = {}) {
   const form = new FormData();
   form.append("file", file);
-  for (const k of ["template", "check_links", "summary", "allow_secrets", "redact", "model"]) {
+  for (const k of ["template", "check_links", "check_style", "summary", "allow_secrets", "redact", "model"]) {
     if (opts[k] !== undefined && opts[k] !== null && opts[k] !== "") form.append(k, opts[k]);
   }
   const r = await fetch("/api/refine", { method: "POST", body: form });
@@ -42,6 +42,7 @@ export async function githubRefine({ owner, repo, ref, base, pat, open_pr }, opt
     options: {
       template: opts.template || null,
       check_links: !!opts.check_links,
+      check_style: !!opts.check_style,
       summary: !!opts.summary,
       allow_secrets: !!opts.allow_secrets,
       redact: !!opts.redact,

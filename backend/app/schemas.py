@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class RefineOptions(BaseModel):
     template: Optional[str] = None
     check_links: bool = False
+    check_style: bool = False
     summary: bool = False
     allow_secrets: bool = False
     redact: bool = False
@@ -17,6 +18,7 @@ class RefineOptions(BaseModel):
     def to_opts(self) -> dict:
         return {
             "check_links": self.check_links,
+            "check_style": self.check_style,
             "summary": self.summary,
             "allow_secrets": self.allow_secrets,
             "redact": self.redact,
@@ -69,6 +71,7 @@ class RefineResult(BaseModel):
     redacted: Optional[bool] = None
     score: Optional[Dict[str, Any]] = None
     links: Optional[Dict[str, Any]] = None
+    style: Optional[Dict[str, Any]] = None
     summary: Optional[str] = None
     retries: Optional[int] = None
     cached: Optional[bool] = None

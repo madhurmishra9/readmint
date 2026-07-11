@@ -61,4 +61,7 @@ pre.summary { white-space:pre-wrap; }
 .exportbar button { background:#0d0f14; color:var(--fg); border:1px solid var(--line); padding:.5rem .8rem; border-radius:8px; cursor:pointer; }
 .exportbar .hint { color:var(--muted); font-size:.8rem; }
 .ack { display:flex; gap:.4rem; color:var(--warn); margin:.5rem 0; align-items:center; }
+.style-findings { list-style:none; padding:0; margin:0; font-size:.85rem; }
+.style-findings li { padding:.2rem 0; border-bottom:1px solid var(--line); }
+.style-findings .loc { color:var(--muted); }
 code { background:#0d0f14; padding:.05rem .3rem; border-radius:4px; }

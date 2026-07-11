@@ -35,6 +35,7 @@ Most LLM "beautifier" tools quietly drop commands, links, and config values whil
 - **Documentation scoring** — deterministic completeness score, before and after.
 - **Template enforcement** — map content into org-standard section structures.
 - **Link validation** — flags dead URLs.
+- **Prose/style lint** — deterministic, advisory checks (wordy phrases, passive voice, overlong sentences, missing alt text) — no LLM call.
 - **Deterministic ToC** — correct GitHub anchors, computed not guessed.
 - **Change summary** — concise, model-generated "what changed".
 - **Multiple surfaces** — web UI, CLI, pre-commit hook, and REST API.
@@ -171,6 +172,7 @@ curl -X POST http://localhost:8080/api/github/refine \
 ```bash
 python cli/readmint_cli.py refine README.md --write --check-links
 python cli/readmint_cli.py score README.md --template service
+python cli/readmint_cli.py lint README.md
 ```
 
 Exit codes: `0` success, `2` secrets detected, `3` content loss detected, `4` transport/API error — safe to wire into CI.
@@ -204,6 +206,7 @@ curl -X POST http://localhost:8080/api/refine \
 | POST | `/api/batch` · `/api/batch/zip` | Many → results table |
 | POST | `/api/github/refine` | `{owner, repo, ref}` → refined + optional PR |
 | POST | `/api/score` | Score only, no LLM call |
+| POST | `/api/style` | Deterministic prose/style lint, no LLM call |
 | POST | `/api/export` | HTML / PDF, or push to Confluence |
 | GET | `/api/templates` · `/api/history` | Templates · audit runs |
 | GET | `/metrics` · `/healthz` | Prometheus · liveness/readiness |

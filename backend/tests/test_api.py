@@ -27,6 +27,26 @@ def test_score_endpoint_no_llm():
     assert 0 <= r.json()["score"] <= 100
 
 
+def test_style_endpoint_no_llm():
+    r = client.post("/api/style", json={"text": "In order to run this, do X.\n"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] >= 1
+    assert any(f["rule"] == "wordy_phrase" for f in body["findings"])
+
+
+def test_refine_with_check_style_attaches_report():
+    r = client.post("/api/refine", data={"text": DOC, "check_style": "true"})
+    assert r.status_code == 200
+    assert r.json()["style"] is not None
+
+
+def test_refine_without_check_style_omits_report():
+    r = client.post("/api/refine", data={"text": DOC})
+    assert r.status_code == 200
+    assert r.json()["style"] is None
+
+
 def test_refine_paste():
     r = client.post("/api/refine", data={"text": DOC})
     assert r.status_code == 200
