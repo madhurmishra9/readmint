@@ -4,6 +4,12 @@ A template is YAML: a ``name`` plus an ordered ``sections`` list of
 ``{heading, required}``. The parsed dict is passed into ``prompts.system_for``
 (so the LLM reshapes content to fit) and into ``scoring.score`` (so completeness
 is measured against the template instead of the generic rubric).
+
+Templates also carry a ``doc_type`` (default ``"readme"``), so the same
+governance machinery — section contracts, template-mode scoring, prompt
+shaping — applies to companion docs (``CONTRIBUTING.md``, ``SECURITY.md``,
+``CODE_OF_CONDUCT.md``) without any code changes: dropping in a new YAML
+with ``doc_type: contributing`` is enough to register it.
 """
 from __future__ import annotations
 
@@ -24,11 +30,21 @@ def _dir() -> Path:
     return p
 
 
-def list_templates() -> List[str]:
+def list_templates(doc_type: Optional[str] = None) -> List[str]:
     d = _dir()
     if not d.exists():
         return []
-    return sorted(p.stem for p in d.glob("*.y*ml"))
+    names = sorted(p.stem for p in d.glob("*.y*ml"))
+    if doc_type is None:
+        return names
+    return [n for n in names if (load(n) or {}).get("doc_type") == doc_type]
+
+
+def list_doc_types() -> List[str]:
+    d = _dir()
+    if not d.exists():
+        return []
+    return sorted({(load(p.stem) or {}).get("doc_type", "readme") for p in d.glob("*.y*ml")})
 
 
 @functools.lru_cache(maxsize=64)
@@ -51,4 +67,8 @@ def _validate(data: dict, name: str) -> dict:
             sections.append({"heading": s, "required": True})
         else:
             sections.append({"heading": s["heading"], "required": bool(s.get("required", False))})
-    return {"name": data.get("name", name), "sections": sections}
+    return {
+        "name": data.get("name", name),
+        "doc_type": data.get("doc_type", "readme"),
+        "sections": sections,
+    }

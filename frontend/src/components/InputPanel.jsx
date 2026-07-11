@@ -5,17 +5,26 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
   const [mode, setMode] = useState("paste"); // paste | attach | zip | github
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
+  const [docType, setDocType] = useState("readme");
+  const [docTypes, setDocTypes] = useState(["readme"]);
   const [templates, setTemplates] = useState([]);
   const [llm, setLlm] = useState({ provider: "stub", models: [], selected: "" });
   const [opts, setOpts] = useState({ template: "", check_links: false, check_style: false, check_badges: false, check_drift: false, check_version_sync: false, summary: false, redact: false, allow_secrets: false, model: "" });
   const [gh, setGh] = useState({ pat: "", owner: "", repo: "", ref: "HEAD", base: "", open_pr: true });
 
-  useEffect(() => { listTemplates().then(setTemplates).catch(() => {}); }, []);
-  useEffect(() => { getLlmInfo().then((i) => { setLlm(i); setOpts((o) => ({ ...o, model: i.selected || "" })); }).catch(() => {}); }, []);
-
   const setOpt = (k, v) => setOpts((o) => ({ ...o, [k]: v }));
   const setGhField = (k, v) => setGh((g) => ({ ...g, [k]: v }));
   const showModelPicker = llm.provider === "local" && llm.models.length > 0;
+
+  useEffect(() => {
+    listTemplates(docType).then(({ templates: t, doc_types: dt }) => {
+      setTemplates(t);
+      if (dt && dt.length) setDocTypes(dt);
+    }).catch(() => {});
+    setOpt("template", "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docType]);
+  useEffect(() => { getLlmInfo().then((i) => { setLlm(i); setOpts((o) => ({ ...o, model: i.selected || "" })); }).catch(() => {}); }, []);
 
   function submit() {
     const flags = {
@@ -78,6 +87,11 @@ export default function InputPanel({ onRefine, onBatchZip, onGithub, busy }) {
       )}
 
       <div className="options">
+        <label>Doc type
+          <select value={docType} onChange={(e) => setDocType(e.target.value)}>
+            {docTypes.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
+          </select>
+        </label>
         <label>Template
           <select value={opts.template} onChange={(e) => setOpt("template", e.target.value)}>
             <option value="">— default rubric —</option>

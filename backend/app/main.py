@@ -55,8 +55,8 @@ async def healthz():
 
 
 @app.get("/api/templates", tags=["templates"])
-async def list_templates():
-    return {"templates": templates_mod.list_templates()}
+async def list_templates(doc_type: str | None = None):
+    return {"templates": templates_mod.list_templates(doc_type), "doc_types": templates_mod.list_doc_types()}
 
 
 @app.get("/api/llm", tags=["llm"])

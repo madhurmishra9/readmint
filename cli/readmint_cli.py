@@ -31,6 +31,16 @@ def _post(api: str, path: str, **kwargs):
         raise typer.Exit(4)
 
 
+def _get(api: str, path: str, **kwargs):
+    try:
+        r = httpx.get(f"{api.rstrip('/')}{path}", timeout=30, **kwargs)
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError as e:
+        typer.secho(f"API error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(4)
+
+
 @app.command()
 def refine(
     path: str = typer.Argument(..., help="Path to a README/markdown file."),
@@ -116,6 +126,19 @@ def lint(
         where = f"line {f['line']}" if f.get("line") else "doc"
         typer.echo(f"  [{f['rule']}] {where}: {f['message']}")
     raise typer.Exit(1)
+
+
+@app.command()
+def templates(
+    api: str = typer.Option(DEFAULT_API, envvar="READMINT_API"),
+    doc_type: Optional[str] = typer.Option(None, help="Filter to one doc type, e.g. 'contributing' or 'security'."),
+):
+    """List org template names (and doc types) available on the server."""
+    data = _get(api, "/api/templates", params={"doc_type": doc_type} if doc_type else {})
+    for name in data["templates"]:
+        typer.echo(name)
+    if not doc_type:
+        typer.echo(f"\ndoc types: {', '.join(data['doc_types'])}", err=True)
 
 
 if __name__ == "__main__":
